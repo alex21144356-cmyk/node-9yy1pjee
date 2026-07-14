@@ -1,7 +1,10 @@
 const express = require('express');
 const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http, {
+const http = require('http'); // 1. Importar el módulo http de Node de forma limpia
+const server = http.createServer(app); // 2. Crear el servidor HTTP enlazado a app
+
+// 3. Pasar el servidor "server" a Socket.io
+const io = require('socket.io')(server, {
   cors: { origin: '*' },
 });
 
@@ -363,6 +366,9 @@ setInterval(() => {
   io.emit('estadoJuego', empaquetarEstado());
 }, 1000 / 60);
 
-http.listen(3000, () => {
-  console.log('Servidor de combate activo en el puerto 3000');
+// Usar el puerto que te da Render, o el 3000 si estás probando en tu computadora local
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+  console.log(`Servidor de combate activo en el puerto ${PORT}`);
 });
