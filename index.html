@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Stickman Supreme Duelist Showdown 4P</title>
+    <style>
+      body {
+        margin: 0;
+        background: #1e1e24;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        color: white;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        overflow: hidden;
+      }
+      #hud {
+        display: flex;
+        justify-content: space-between;
+        width: 800px;
+        margin-bottom: 15px;
+        background: rgba(0, 0, 0, 0.4);
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        gap: 8px;
+      }
+      .player-stats {
+        text-align: center;
+        flex: 1;
+      }
+      .player-stats .name-line {
+        font-weight: bold;
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .health-bar-container {
+        background: #555;
+        height: 14px;
+        border-radius: 7px;
+        overflow: hidden;
+        margin-top: 5px;
+        border: 1px solid #000;
+      }
+      .health-bar {
+        height: 100%;
+        width: 100%;
+        transition: width 0.1s ease;
+      }
+      canvas {
+        background: #2f3542;
+        border-radius: 6px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      }
+      #rol-tag {
+        margin-top: 10px;
+        font-weight: bold;
+        letter-spacing: 1px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Interfaz Superior de Combate: 4 jugadores -->
+    <div id="hud">
+      <div class="player-stats">
+        <div id="p1-name" class="name-line" style="color: #ff4757">
+          P1 (Rojo): <span id="p1-score">0</span>
+        </div>
+        <div class="health-bar-container">
+          <div id="p1-bar" class="health-bar" style="background: #ff4757"></div>
+        </div>
+      </div>
+      <div class="player-stats">
+        <div id="p2-name" class="name-line" style="color: #2ed573">
+          P2 (Verde): <span id="p2-score">0</span>
+        </div>
+        <div class="health-bar-container">
+          <div id="p2-bar" class="health-bar" style="background: #2ed573"></div>
+        </div>
+      </div>
+      <div class="player-stats">
+        <div id="p3-name" class="name-line" style="color: #1e90ff">
+          P3 (Azul): <span id="p3-score">0</span>
+        </div>
+        <div class="health-bar-container">
+          <div id="p3-bar" class="health-bar" style="background: #1e90ff"></div>
+        </div>
+      </div>
+      <div class="player-stats">
+        <div id="p4-name" class="name-line" style="color: #9b59b6">
+          P4 (Morado): <span id="p4-score">0</span>
+        </div>
+        <div class="health-bar-container">
+          <div id="p4-bar" class="health-bar" style="background: #9b59b6"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Escenario de Pelea -->
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+    <div id="rol-tag">Identificando rol en la arena...</div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+
+      let miId = null;
+      let jugadores = {};
+
+      // Mapeo nativo de inputs del teclado
+      const keys = { left: false, right: false, up: false, attack: false };
+
+      socket.on('init', (data) => {
+        miId = data.id;
+      });
+
+      socket.on('actualizarJugadores', (serverPlayers) => {
+        jugadores = serverPlayers;
+
+        // Actualizar la barra superior e interfaz en tiempo real para los 4 roles
+        for (let role = 1; role <= 4; role++) {
+          let p = Object.values(jugadores).find((j) => j.role === role);
+          let bar = document.getElementById('p' + role + '-bar');
+          let score = document.getElementById('p' + role + '-score');
+          if (p) {
+            bar.style.width = p.health + '%';
+            score.innerText = p.score;
+          } else {
+            bar.style.width = '0%';
+          }
+        }
+
+        // Mostrar al usuario qué personaje está controlando
+        const miUsuario = jugadores[miId];
+        const rolTag = document.getElementById('rol-tag');
+        if (miUsuario) {
+          if (miUsuario.role >= 1 && miUsuario.role <= 4) {
+            rolTag.innerText =
+              'ESTÁS CONTROLANDO AL JUGADOR ' +
+              miUsuario.role +
+              ' - CONTROLES: WASD o FLECHAS + ESPACIO';
+            rolTag.style.color = miUsuario.color;
+          } else {
+            rolTag.innerText =
+              'SALA LLENA (4/4): ESTÁS EN MODO ESPECTADOR (Espera a que uno salga)';
+            rolTag.style.color = '#f1c40f';
+          }
+        }
+      });
+
+      // RENDERIZADO VISUAL DEL STICKMAN Y ARMA
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Dibujar la Plataforma Inferior de la Arena
+        ctx.fillStyle = '#4b5563';
+        ctx.fillRect(0, 400, canvas.width, 100);
+        ctx.fillStyle = '#374151';
+        ctx.fillRect(0, 400, canvas.width, 8);
+
+        // Iterar y dibujar cada muñeco articulado (hasta 4 jugadores)
+        for (let id in jugadores) {
+          let p = jugadores[id];
+          if (p.role > 4) continue; // Omitir render si es espectador
+
+          if (p.health <= 0) {
+            ctx.font = '14px sans-serif';
+            ctx.fillStyle = '#fff';
+            ctx.fillText('❌ ELIMINADO', p.x - 40, p.y - 20);
+            continue;
+          }
+
+          // --- DIBUJAR AL STICKMAN ---
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 4;
+          ctx.lineCap = 'round';
+
+          // 1. Cabeza
+          ctx.beginPath();
+          ctx.arc(p.x, p.y - 12, 8, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 4;
+
+          // 2. Columna Vertebral / Tronco
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y - 4);
+          ctx.lineTo(p.x, p.y + 12);
+          ctx.stroke();
+
+          // 3. Piernas dinámicas
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y + 12);
+          ctx.lineTo(p.x - 6, p.y + 25);
+          ctx.moveTo(p.x, p.y + 12);
+          ctx.lineTo(p.x + 6, p.y + 25);
+          ctx.stroke();
+
+          // --- DIBUJAR LA ESPADA ---
+          let largoArma = p.isAttacking ? 50 : 32;
+          let anguloArma = p.isAttacking ? 0 : 0.4;
+
+          let manoX = p.x + 4 * p.facing;
+          let manoY = p.y + 4;
+
+          let puntaX = manoX + Math.cos(anguloArma) * largoArma * p.facing;
+          let puntaY = manoY + Math.sin(anguloArma) * largoArma;
+
+          if (p.isAttacking) {
+            ctx.beginPath();
+            ctx.arc(manoX, manoY, 55, -0.2, 0.2);
+            ctx.strokeStyle = 'rgba(255, 242, 0, 0.2)';
+            ctx.lineWidth = 8;
+            ctx.stroke();
+          }
+
+          ctx.beginPath();
+          ctx.moveTo(manoX, manoY);
+          ctx.lineTo(puntaX, puntaY);
+          ctx.strokeStyle = '#f1c40f';
+          ctx.lineWidth = 5;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(manoX, manoY - 4);
+          ctx.lineTo(manoX, manoY + 4);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          // Etiqueta con el número de jugador sobre la cabeza (ayuda a identificarlos)
+          ctx.font = 'bold 11px sans-serif';
+          ctx.fillStyle = p.color;
+          ctx.textAlign = 'center';
+          ctx.fillText('P' + p.role, p.x, p.y - 26);
+          ctx.textAlign = 'left';
+        }
+
+        requestAnimationFrame(draw);
+      }
+
+      draw();
+
+      // REGISTRO DE EVENTOS DEL TECLADO
+      function enviarInputs() {
+        socket.emit('input', keys);
+      }
+
+      window.addEventListener('keydown', (e) => {
+        let key = e.key.toLowerCase();
+        if (key === 'arrowleft' || key === 'a') keys.left = true;
+        if (key === 'arrowright' || key === 'd') keys.right = true;
+        if (key === 'arrowup' || key === 'w') keys.up = true;
+        if (e.key === ' ' || key === 'j') keys.attack = true;
+        enviarInputs();
+      });
+
+      window.addEventListener('keyup', (e) => {
+        let key = e.key.toLowerCase();
+        if (key === 'arrowleft' || key === 'a') keys.left = false;
+        if (key === 'arrowright' || key === 'd') keys.right = false;
+        if (key === 'arrowup' || key === 'w') keys.up = false;
+        if (e.key === ' ' || key === 'j') keys.attack = false;
+        enviarInputs();
+      });
+    </script>
+  </body>
+</html>
