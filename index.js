@@ -1,12 +1,12 @@
 const express = require('express');
 const app = express();
-const http = require('http'); // 1. Importar el módulo http de Node de forma limpia
-const server = http.createServer(app); // 2. Crear el servidor HTTP enlazado a app
-
-// 3. Pasar el servidor "server" a Socket.io
+const http = require('http');
+const server = http.createServer(app);
 const io = require('socket.io')(server, {
   cors: { origin: '*' },
 });
+
+app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
@@ -14,7 +14,9 @@ app.get('/', (req, res) => {
 
 // ============== CONFIGURACIÓN GENERAL ==============
 let players = {};
-let weaponPickups = {}; // { id: { id, x, y, type } }
+let weaponPickups = {}; 
+let projectiles = []; // Proyectiles activos en el servidor (balas y ganchos)
+
 const GRAVITY = 0.6;
 const FLOOR_Y = 400;
 const CANVAS_WIDTH = 800;
@@ -23,7 +25,6 @@ const PLAYER_RADIUS = 15;
 const MAX_PLAYERS = 4;
 const PUNTOS_PARA_GANAR = 10;
 
-// Configuración de cada uno de los 4 roles: posición inicial, color y dirección
 const ROLE_CONFIG = {
   1: { x: 100, color: '#ff4757', facing: 1 },
   2: { x: 300, color: '#2ed573', facing: 1 },
@@ -31,41 +32,60 @@ const ROLE_CONFIG = {
   4: { x: 700, color: '#9b59b6', facing: -1 },
 };
 
-// ============== ARMAS ==============
+// ============== ARMAS DISPONIBLES ==============
 const WEAPONS = {
-  espada: { name: 'Espada', range: 45, damage: 12, knockback: 16, attackDuration: 10 },
-  lanza: { name: 'Lanza', range: 65, damage: 8, knockback: 10, attackDuration: 14 },
-  hacha: { name: 'Hacha', range: 35, damage: 20, knockback: 22, attackDuration: 18 },
-  daga: { name: 'Daga', range: 25, damage: 6, knockback: 6, attackDuration: 6 },
-  martillo: { name: 'Martillo', range: 40, damage: 15, knockback: 30, attackDuration: 22 },
+  espada: { name: 'Espada', range: 45, damage: 12, knockback: 16, attackDuration: 10, type: 'melee' },
+  espadon: { name: 'Espadón', range: 65, damage: 22, knockback: 24, attackDuration: 18, type: 'melee' },
+  hoja_rapida: { name: 'Hoja Rápida', range: 35, damage: 8, knockback: 10, attackDuration: 6, type: 'melee' },
+  gancho: { name: 'Gancho de Agarre', type: 'grapple' },
+  fusil_rapido: { name: 'Fusil Rápido', damage: 6, knockback: 4, cooldown: 12, type: 'ranged', speed: 16, size: 4, color: '#f1c40f' },
+  fusil_pesado: { name: 'Fusil Pesado', damage: 25, knockback: 25, cooldown: 45, type: 'ranged', speed: 22, size: 8, color: '#e74c3c' },
+  fusil_plasma: { name: 'Fusil Plasma', damage: 14, knockback: 12, cooldown: 24, type: 'ranged', speed: 12, size: 6, color: '#9b59b6' },
+  lanza: { name: 'Lanza', range: 65, damage: 8, knockback: 10, attackDuration: 14, type: 'melee' },
+  hacha: { name: 'Hacha', range: 35, damage: 20, knockback: 22, attackDuration: 18, type: 'melee' },
+  daga: { name: 'Daga', range: 25, damage: 6, knockback: 6, attackDuration: 6, type: 'melee' },
+  martillo: { name: 'Martillo', range: 40, damage: 15, knockback: 30, attackDuration: 22, type: 'melee' },
 };
 const WEAPON_KEYS = Object.keys(WEAPONS);
 let pickupIdCounter = 1;
 
-function spawnWeaponPickup() {
-  const id = 'pk' + pickupIdCounter++;
-  const type = WEAPON_KEYS[Math.floor(Math.random() * WEAPON_KEYS.length)];
-  weaponPickups[id] = {
-    id,
-    type,
-    x: 60 + Math.random() * (CANVAS_WIDTH - 120),
-    y: FLOOR_Y - 14,
-  };
+function getRandomWeapon() {
+  return WEAPON_KEYS[Math.floor(Math.random() * WEAPON_KEYS.length)];
 }
 
-// ============== MAPAS ==============
-// Cada mapa define plataformas flotantes adicionales sobre el suelo base.
+function asignarArmasAleatorias() {
+  for (let id in players) {
+    if (players[id].role <= MAX_PLAYERS) {
+      players[id].weapon = getRandomWeapon();
+      // Resetear estados de ganchos si los tenían activos
+      players[id].hook = null; 
+    }
+  }
+}
+
+function spawnWeaponPickup() {
+  const id = 'pk' + pickupIdCounter++;
+  const type = getRandomWeapon();
+  // No spawnear directamente en el abismo si el mapa actual es de vacío
+  let spawnY = FLOOR_Y - 14;
+  const map = MAPS[currentMapIndex];
+  if (map.hasVoid && map.platforms.length > 0) {
+    const plat = map.platforms[Math.floor(Math.random() * map.platforms.length)];
+    spawnY = plat.y - 14;
+    weaponPickups[id] = { id, type, x: plat.x + plat.width / 2, y: spawnY };
+  } else {
+    weaponPickups[id] = { id, type, x: 60 + Math.random() * (CANVAS_WIDTH - 120), y: spawnY };
+  }
+}
+
+// ============== 13 MAPAS (3 con caída al vacío / hasVoid) ==============
 const MAPS = [
-  {
-    name: 'Arena Clásica',
-    bg: '#2f3542',
-    floorColor: '#4b5563',
-    platforms: [],
-  },
+  { name: 'Arena Clásica', bg: '#2f3542', floorColor: '#4b5563', hasVoid: false, platforms: [] },
   {
     name: 'Templo de Piedra',
     bg: '#2b2320',
     floorColor: '#6b4f3a',
+    hasVoid: false,
     platforms: [
       { x: 140, y: 300, width: 150, height: 16 },
       { x: 510, y: 300, width: 150, height: 16 },
@@ -75,6 +95,7 @@ const MAPS = [
     name: 'Plataformas Flotantes',
     bg: '#18222e',
     floorColor: '#34495e',
+    hasVoid: false,
     platforms: [
       { x: 70, y: 320, width: 120, height: 16 },
       { x: 340, y: 250, width: 120, height: 16 },
@@ -85,19 +106,112 @@ const MAPS = [
     name: 'Volcán',
     bg: '#2e1512',
     floorColor: '#c0392b',
+    hasVoid: false,
     platforms: [{ x: 250, y: 310, width: 300, height: 16 }],
   },
   {
     name: 'Hielo Eterno',
     bg: '#152530',
     floorColor: '#85c1e9',
+    hasVoid: false,
     platforms: [
       { x: 90, y: 280, width: 100, height: 16 },
       { x: 610, y: 280, width: 100, height: 16 },
       { x: 350, y: 340, width: 100, height: 16 },
     ],
   },
+  // --- NUEVOS MAPAS ---
+  {
+    name: 'Abismo del Vacío (Peligro de Caída)',
+    bg: '#0f0f14',
+    floorColor: '#1e272e',
+    hasVoid: true, // Mapa con caída libre
+    platforms: [
+      { x: 50, y: 350, width: 220, height: 20 },
+      { x: 530, y: 350, width: 220, height: 20 },
+      { x: 300, y: 230, width: 200, height: 20 },
+    ],
+  },
+  {
+    name: 'Estructuras Elevadas (Peligro de Caída)',
+    bg: '#2c3e50',
+    floorColor: '#7f8c8d',
+    hasVoid: true, // Mapa con caída libre
+    platforms: [
+      { x: 150, y: 380, width: 120, height: 20 },
+      { x: 530, y: 380, width: 120, height: 20 },
+      { x: 300, y: 290, width: 200, height: 20 },
+      { x: 100, y: 190, width: 150, height: 20 },
+      { x: 550, y: 190, width: 150, height: 20 },
+    ],
+  },
+  {
+    name: 'Puentes Suspendidos (Peligro de Caída)',
+    bg: '#1e1e24',
+    floorColor: '#d35400',
+    hasVoid: true, // Mapa con caída libre
+    platforms: [
+      { x: 30, y: 390, width: 160, height: 15 },
+      { x: 610, y: 390, width: 160, height: 15 },
+      { x: 220, y: 300, width: 360, height: 15 },
+      { x: 340, y: 190, width: 120, height: 15 },
+    ],
+  },
+  {
+    name: 'Ruinas Metálicas',
+    bg: '#1a1d20',
+    floorColor: '#57606f',
+    hasVoid: false,
+    platforms: [
+      { x: 200, y: 320, width: 400, height: 16 },
+      { x: 300, y: 220, width: 200, height: 16 },
+    ],
+  },
+  {
+    name: 'Fábrica Tóxica',
+    bg: '#1b2a1a',
+    floorColor: '#2ed573',
+    hasVoid: false,
+    platforms: [
+      { x: 50, y: 280, width: 180, height: 16 },
+      { x: 570, y: 280, width: 180, height: 16 },
+      { x: 270, y: 200, width: 260, height: 16 },
+    ],
+  },
+  {
+    name: 'Laboratorio Espacial',
+    bg: '#0c1020',
+    floorColor: '#45aaf2',
+    hasVoid: false,
+    platforms: [
+      { x: 100, y: 330, width: 600, height: 14 },
+      { x: 250, y: 240, width: 300, height: 14 },
+    ],
+  },
+  {
+    name: 'Búnker Subterráneo',
+    bg: '#2d3436',
+    floorColor: '#2d3436',
+    hasVoid: false,
+    platforms: [
+      { x: 80, y: 310, width: 200, height: 20 },
+      { x: 520, y: 310, width: 200, height: 20 },
+      { x: 180, y: 200, width: 440, height: 20 },
+    ],
+  },
+  {
+    name: 'Zona Desértica',
+    bg: '#4a3c31',
+    floorColor: '#e1b12c',
+    hasVoid: false,
+    platforms: [
+      { x: 50, y: 300, width: 150, height: 16 },
+      { x: 600, y: 300, width: 150, height: 16 },
+      { x: 240, y: 220, width: 320, height: 16 },
+    ],
+  },
 ];
+
 let currentMapIndex = Math.floor(Math.random() * MAPS.length);
 let matchActive = true;
 
@@ -122,24 +236,23 @@ io.on('connection', (socket) => {
     id: socket.id,
     role: role,
     x: cfg.x,
-    y: 200,
+    y: 150,
     vx: 0,
     vy: 0,
     health: 100,
     facing: cfg.facing,
     isAttacking: false,
     attackTimer: 0,
+    shootCooldown: 0,
     color: cfg.color,
     score: 0,
-    weapon: 'espada',
+    weapon: getRandomWeapon(), // Arma aleatoria al ingresar
+    hook: null, // Guardará la info de la cuerda/anclaje del gancho
     inputs: { left: false, right: false, up: false, attack: false },
   };
 
   socket.emit('init', { id: socket.id });
-  io.emit(
-    'estadoJuego',
-    empaquetarEstado()
-  );
+  io.emit('estadoJuego', empaquetarEstado());
 
   socket.on('input', (keys) => {
     if (players[socket.id]) {
@@ -158,16 +271,18 @@ function empaquetarEstado() {
   return {
     players,
     weaponPickups,
+    projectiles,
     mapIndex: currentMapIndex,
     matchActive,
   };
 }
 
-// ============== COMBATE ==============
-function verificarGolpe(attackerId) {
+// ============== ATAQUE DE MELEE ==============
+function verificarGolpeMelee(attackerId) {
   let attacker = players[attackerId];
   if (!attacker) return;
-  const arma = WEAPONS[attacker.weapon] || WEAPONS.espada;
+  const arma = WEAPONS[attacker.weapon];
+  if (!arma || arma.type !== 'melee') return;
 
   for (let targetId in players) {
     if (targetId === attackerId) continue;
@@ -183,34 +298,50 @@ function verificarGolpe(attackerId) {
       (attacker.facing === -1 && dx < 10);
 
     if (distancia < arma.range + PLAYER_RADIUS + 10 && enDireccion) {
-      target.health -= arma.damage;
-
-      target.vx = attacker.facing * arma.knockback;
-      target.vy = -9;
-
-      if (target.health <= 0) {
-        target.health = 0;
-        attacker.score += 1;
-
-        if (attacker.score >= PUNTOS_PARA_GANAR) {
-          terminarPartida();
-          return;
-        }
-
-        setTimeout(() => {
-          if (players[targetId]) {
-            const c = ROLE_CONFIG[players[targetId].role];
-            players[targetId].health = 100;
-            players[targetId].x = c ? c.x : 400;
-            players[targetId].y = 150;
-            players[targetId].vx = 0;
-            players[targetId].vy = 0;
-            players[targetId].weapon = 'espada';
-          }
-        }, 1500);
-      }
+      aplicarDanioYRetroceso(attackerId, targetId, arma.damage, attacker.facing * arma.knockback);
     }
   }
+}
+
+function aplicarDanioYRetroceso(attackerId, targetId, damage, kbX) {
+  let target = players[targetId];
+  let attacker = players[attackerId];
+  if (!target || target.health <= 0) return;
+
+  target.health -= damage;
+  target.vx = kbX;
+  target.vy = -7;
+  target.hook = null; // Romper gancho al recibir un golpe
+
+  if (target.health <= 0) {
+    ejecutarMuerte(attacker, target);
+  }
+}
+
+function ejecutarMuerte(attacker, target) {
+  target.health = 0;
+  target.hook = null;
+  if (attacker) {
+    attacker.score += 1;
+    if (attacker.score >= PUNTOS_PARA_GANAR) {
+      terminarPartida();
+      return;
+    }
+  }
+
+  // Resurgir tras 1.5s
+  setTimeout(() => {
+    if (players[target.id]) {
+      const c = ROLE_CONFIG[players[target.id].role];
+      players[target.id].health = 100;
+      players[target.id].x = c ? c.x : 400;
+      players[target.id].y = 100;
+      players[target.id].vx = 0;
+      players[target.id].vy = 0;
+      players[target.id].weapon = getRandomWeapon(); // Recibe nueva arma al azar al reaparecer
+      players[target.id].hook = null;
+    }
+  }, 1500);
 }
 
 // ============== FIN DE PARTIDA Y PODIO ==============
@@ -228,6 +359,10 @@ function terminarPartida() {
   setTimeout(() => {
     currentMapIndex = Math.floor(Math.random() * MAPS.length);
     weaponPickups = {};
+    projectiles = [];
+
+    // Cambiar de mapa, restablecer vidas y asignar un arma totalmente aleatoria a cada uno
+    asignarArmasAleatorias();
 
     for (let id in players) {
       let p = players[id];
@@ -236,12 +371,13 @@ function terminarPartida() {
         p.health = 100;
         p.score = 0;
         p.x = c.x;
-        p.y = 150;
+        p.y = 100;
         p.vx = 0;
         p.vy = 0;
-        p.weapon = 'espada';
         p.isAttacking = false;
         p.attackTimer = 0;
+        p.shootCooldown = 0;
+        p.hook = null;
       }
     }
 
@@ -250,7 +386,7 @@ function terminarPartida() {
   }, 8000);
 }
 
-// ============== LOOP PRINCIPAL DE FÍSICA (60 FPS) ==============
+// ============== LOOP PRINCIPAL (60 FPS) ==============
 let framesDesdeUltimoPickup = 0;
 
 setInterval(() => {
@@ -261,7 +397,7 @@ setInterval(() => {
 
   const map = MAPS[currentMapIndex];
 
-  // Generar armas aleatorias en el mapa cada cierto tiempo
+  // Generación de armas flotantes en mapas
   framesDesdeUltimoPickup++;
   if (framesDesdeUltimoPickup > 240 && Object.keys(weaponPickups).length < 3) {
     if (Math.random() < 0.05) {
@@ -270,11 +406,88 @@ setInterval(() => {
     }
   }
 
+  // --- Actualizar Proyectiles (Balas y Ganchos) ---
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    let proj = projectiles[i];
+    
+    if (proj.type === 'bullet') {
+      proj.x += proj.vx;
+      
+      // Colisión de bala contra jugadores
+      let hit = false;
+      for (let targetId in players) {
+        if (targetId === proj.ownerId) continue;
+        let target = players[targetId];
+        if (!target || target.role > MAX_PLAYERS || target.health <= 0) continue;
+
+        let dist = Math.sqrt((target.x - proj.x)**2 + (target.y - proj.y)**2);
+        if (dist < PLAYER_RADIUS + proj.size) {
+          aplicarDanioYRetroceso(proj.ownerId, targetId, proj.damage, Math.sign(proj.vx) * proj.knockback);
+          hit = true;
+          break;
+        }
+      }
+
+      // Salir de pantalla
+      if (proj.x < 0 || proj.x > CANVAS_WIDTH || hit) {
+        projectiles.splice(i, 1);
+      }
+    } 
+    else if (proj.type === 'hook') {
+      // Movimiento del proyectil gancho
+      if (proj.state === 'flying') {
+        proj.x += proj.vx;
+        proj.y += proj.vy;
+
+        let hitPlatform = false;
+        
+        // Verificar impacto en el techo del mapa
+        if (proj.y <= 0) {
+          proj.y = 0;
+          hitPlatform = true;
+        }
+
+        // Verificar impacto en las plataformas
+        for (let plat of map.platforms) {
+          if (proj.x >= plat.x && proj.x <= plat.x + plat.width) {
+            if (Math.abs(proj.y - plat.y) < 10) {
+              proj.y = plat.y;
+              hitPlatform = true;
+              break;
+            }
+          }
+        }
+
+        if (hitPlatform) {
+          proj.state = 'latched';
+          let owner = players[proj.ownerId];
+          if (owner) {
+            owner.hook = { x: proj.x, y: proj.y };
+          }
+          projectiles.splice(i, 1); // Remover de proyectiles activos, ya está sujeto
+        } else {
+          // Si el gancho vuela demasiado lejos, se rompe
+          let owner = players[proj.ownerId];
+          if (!owner) {
+            projectiles.splice(i, 1);
+          } else {
+            let dist = Math.sqrt((owner.x - proj.x)**2 + (owner.y - proj.y)**2);
+            if (dist > 380) {
+              projectiles.splice(i, 1);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // --- Actualizar Físicas de Jugadores ---
   for (let id in players) {
     let p = players[id];
     if (p.role > MAX_PLAYERS) continue;
 
     if (p.health > 0) {
+      // 1. Inputs y Movimiento horizontal
       if (p.inputs.left) {
         p.vx = -5.5;
         p.facing = -1;
@@ -282,33 +495,101 @@ setInterval(() => {
         p.vx = 5.5;
         p.facing = 1;
       } else {
-        if (p.y >= FLOOR_Y - PLAYER_RADIUS) {
+        if (!p.hook && (p.y >= FLOOR_Y - PLAYER_RADIUS || p.enPlataforma)) {
           p.vx *= 0.65;
           if (Math.abs(p.vx) < 0.2) p.vx = 0;
         }
       }
 
-      if (p.inputs.up && (p.y >= FLOOR_Y - PLAYER_RADIUS || p.enPlataforma)) {
-        p.vy = -12.5;
+      // 2. Saltar (Solo si no está colgando del gancho o está en el suelo/plataforma)
+      if (p.inputs.up) {
+        if (p.hook) {
+          // Soltar gancho saltando
+          p.hook = null;
+          p.vy = -8;
+        } else if (p.y >= FLOOR_Y - PLAYER_RADIUS || p.enPlataforma) {
+          p.vy = -12.5;
+        }
       }
 
-      if (p.inputs.attack && !p.isAttacking && p.attackTimer === 0) {
-        const arma = WEAPONS[p.weapon] || WEAPONS.espada;
-        p.isAttacking = true;
-        p.attackTimer = arma.attackDuration;
-        verificarGolpe(id);
-        if (!matchActive) continue; // la partida pudo terminar en este golpe
+      // 3. Físicas bajo tensión del gancho de agarre
+      if (p.hook) {
+        let dx = p.hook.x - p.x;
+        let dy = p.hook.y - p.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 20) {
+          // Aplicar fuerza de atracción/tensión constante hacia el punto de anclaje
+          p.vx += (dx / dist) * 0.95;
+          p.vy += (dy / dist) * 0.95 - 0.2; // Aligera el peso de la gravedad mientras se eleva
+          
+          // Limitar velocidades máximas en la tirolesa/gancho
+          p.vx = Math.max(-10, Math.min(10, p.vx));
+          p.vy = Math.max(-10, Math.min(10, p.vy));
+        } else {
+          // Llegó al anclaje, soltar automáticamente
+          p.hook = null;
+        }
+      }
+
+      // 4. Mecánica de Ataque / Disparo
+      if (p.shootCooldown > 0) p.shootCooldown--;
+
+      if (p.inputs.attack) {
+        const arma = WEAPONS[p.weapon];
+        if (arma) {
+          if (arma.type === 'melee' && !p.isAttacking && p.attackTimer === 0) {
+            p.isAttacking = true;
+            p.attackTimer = arma.attackDuration;
+            verificarGolpeMelee(id);
+            if (!matchActive) continue;
+          } 
+          else if (arma.type === 'ranged' && p.shootCooldown === 0) {
+            p.shootCooldown = arma.cooldown;
+            // Crear proyectiles de balas
+            projectiles.push({
+              type: 'bullet',
+              ownerId: p.id,
+              x: p.x + 18 * p.facing,
+              y: p.y + 4,
+              vx: p.facing * arma.speed,
+              damage: arma.damage,
+              knockback: arma.knockback,
+              size: arma.size,
+              color: arma.color
+            });
+            // Pequeño retroceso al disparar
+            p.vx = -p.facing * (arma.knockback * 0.35);
+          }
+          else if (arma.type === 'grapple' && !p.hook) {
+            // Disparar gancho (si no hay uno activo ya)
+            // Buscar si ya hay un proyectil gancho volando de este jugador y retirarlo
+            projectiles = projectiles.filter(pr => !(pr.type === 'hook' && pr.ownerId === p.id));
+            
+            projectiles.push({
+              type: 'hook',
+              ownerId: p.id,
+              x: p.x,
+              y: p.y,
+              vx: p.facing * 14,
+              vy: -14, // Dirección oblicua/arriba
+              state: 'flying'
+            });
+          }
+        }
       }
     }
 
+    // 5. Aplicar fuerzas de física
     p.y += p.vy;
     p.vy += GRAVITY;
     p.x += p.vx;
-    if (p.y < FLOOR_Y - PLAYER_RADIUS) {
+
+    if (!p.hook && p.y < FLOOR_Y - PLAYER_RADIUS) {
       p.vx *= 0.98;
     }
 
-    // Colisión con plataformas flotantes del mapa actual
+    // 6. Colisión con plataformas del escenario actual
     p.enPlataforma = false;
     for (let plat of map.platforms) {
       const dentroX =
@@ -324,16 +605,28 @@ setInterval(() => {
         p.y = plat.y - PLAYER_RADIUS;
         p.vy = 0;
         p.enPlataforma = true;
+        p.hook = null; // Detener tirón de gancho si pisa terreno
       }
     }
 
-    // Colisión con el suelo principal
-    if (p.y >= FLOOR_Y - PLAYER_RADIUS) {
-      p.y = FLOOR_Y - PLAYER_RADIUS;
-      p.vy = 0;
+    // 7. Límites y Muertes del Escenario
+    if (map.hasVoid) {
+      // MUERTE POR CAÍDA AL VACÍO
+      if (p.y > CANVAS_HEIGHT + 50) {
+        if (p.health > 0) {
+          ejecutarMuerte(null, p);
+        }
+      }
+    } else {
+      // Suelo indestructible en mapas normales
+      if (p.y >= FLOOR_Y - PLAYER_RADIUS) {
+        p.y = FLOOR_Y - PLAYER_RADIUS;
+        p.vy = 0;
+        p.hook = null;
+      }
     }
 
-    // Límites de la arena
+    // Límites laterales de la pantalla
     if (p.x < PLAYER_RADIUS) {
       p.x = PLAYER_RADIUS;
       p.vx *= -0.5;
@@ -348,7 +641,7 @@ setInterval(() => {
       if (p.attackTimer === 0) p.isAttacking = false;
     }
 
-    // Recoger armas del suelo
+    // 8. Recoger armas del suelo de forma clásica
     if (p.health > 0) {
       for (let pkId in weaponPickups) {
         let pk = weaponPickups[pkId];
@@ -357,6 +650,7 @@ setInterval(() => {
         let dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 32) {
           p.weapon = pk.type;
+          p.hook = null; // Romper gancho viejo
           delete weaponPickups[pkId];
         }
       }
@@ -366,9 +660,8 @@ setInterval(() => {
   io.emit('estadoJuego', empaquetarEstado());
 }, 1000 / 60);
 
-// Usar el puerto que te da Render, o el 3000 si estás probando en tu computadora local
+// Escuchar puerto dinámico de Render o 3000 local
 const PORT = process.env.PORT || 3000;
-
 server.listen(PORT, () => {
   console.log(`Servidor de combate activo en el puerto ${PORT}`);
 });
