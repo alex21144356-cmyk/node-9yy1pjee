@@ -607,7 +607,6 @@
 
           if (p.isAttacking) {
             if (arma.type === 'melee_slash') {
-              // Animación de espadas: Barrido circular amplio
               largoArma = arma.attackLength;
               anguloArma = -0.3; // Sube al golpear
 
@@ -618,9 +617,8 @@
               ctx.stroke();
             } 
             else if (arma.type === 'melee_thrust') {
-              // Animación de lanzas/dagas: Estocada recta hacia adelante
               largoArma = arma.attackLength;
-              anguloArma = 0; // Recto
+              anguloArma = 0; // Estocada recta hacia adelante
 
               ctx.beginPath();
               ctx.moveTo(manoX, manoY);
@@ -630,19 +628,17 @@
               ctx.stroke();
             } 
             else if (arma.type === 'melee_heavy') {
-              // Animación de hachas/martillos: Golpe descendente brusco
               largoArma = arma.attackLength;
-              anguloArma = 1.2; // Apunta directo al suelo
+              anguloArma = 1.1; // Golpe descendente directo al suelo
 
               ctx.beginPath();
-              ctx.arc(manoX, manoY, largoArma, 0.2, 1.3);
-              ctx.strokeStyle = 'rgba(231, 76, 60, 0.2)';
+              ctx.arc(manoX, manoY, largoArma, 0.2, 1.2);
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
               ctx.lineWidth = 6;
               ctx.stroke();
             }
           }
 
-          // Si es un arma a distancia y está disparando (detectado por un cooldown alto activo)
           let destelloDisparo = false;
           if (arma.type === 'ranged' && p.inputs.attack && p.shootCooldown > 0) {
             destelloDisparo = true;
@@ -651,52 +647,288 @@
           let puntaX = manoX + Math.cos(anguloArma) * largoArma * p.facing;
           let puntaY = manoY + Math.sin(anguloArma) * largoArma;
 
-          // Dibujar Silueta física del Arma
-          ctx.beginPath();
-          ctx.moveTo(manoX, manoY);
-          ctx.lineTo(puntaX, puntaY);
-          ctx.strokeStyle = arma.color;
-          ctx.lineWidth = arma.width;
-          ctx.stroke();
+          // ==========================================
+          //   DIBUJO DE ARMAS TOTALMENTE PERSONALIZADAS
+          // ==========================================
+          ctx.save();
+          ctx.translate(manoX, manoY);
+          // Si el jugador mira a la izquierda (-1), invertimos el escalado horizontal de la rotación
+          ctx.scale(p.facing, 1);
+          ctx.rotate(anguloArma);
 
-          // Detalles específicos del diseño visual del arma
-          if (p.weapon === 'martillo') {
-            // Cabeza del martillo
-            ctx.fillStyle = '#7f8c8d';
-            ctx.fillRect(puntaX - 8, puntaY - 12, 16, 24);
-          } else if (p.weapon === 'hacha') {
-            // Filo del hacha
+          if (p.weapon === 'espada') {
+            // Mango marrón
             ctx.beginPath();
-            ctx.arc(puntaX, puntaY, 8, -Math.PI / 2, Math.PI / 2);
+            ctx.moveTo(0, 0);
+            ctx.lineTo(8, 0);
+            ctx.strokeStyle = '#8e44ad'; // Empuñadura morada
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Guarda amarilla brillante
+            ctx.beginPath();
+            ctx.moveTo(8, -6);
+            ctx.lineTo(8, 6);
+            ctx.strokeStyle = '#f1c40f';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Hoja plateada y afilada
+            ctx.beginPath();
+            ctx.moveTo(8, -2.5);
+            ctx.lineTo(largoArma - 4, -2.5);
+            ctx.lineTo(largoArma, 0); // Punta afilada central
+            ctx.lineTo(largoArma - 4, 2.5);
+            ctx.lineTo(8, 2.5);
+            ctx.closePath();
+            ctx.fillStyle = '#ecf0f1';
+            ctx.fill();
+            ctx.strokeStyle = '#bdc3c7';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          } 
+          else if (p.weapon === 'espadon') {
+            // Mango largo de mandoble
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(12, 0);
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+
+            // Guarda masiva en V
+            ctx.beginPath();
+            ctx.moveTo(12, -10);
+            ctx.lineTo(10, 0);
+            ctx.lineTo(12, 10);
+            ctx.strokeStyle = '#d35400';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Hoja ancha plateada
+            ctx.beginPath();
+            ctx.moveTo(12, -5);
+            ctx.lineTo(largoArma - 6, -5);
+            ctx.lineTo(largoArma, 0);
+            ctx.lineTo(largoArma - 6, 5);
+            ctx.lineTo(12, 5);
+            ctx.closePath();
             ctx.fillStyle = '#bdc3c7';
             ctx.fill();
-          } else if (p.weapon === 'gancho') {
-            // Garra del gancho
-            ctx.beginPath();
-            ctx.arc(puntaX, puntaY, 5, 0, Math.PI * 2);
-            ctx.fillStyle = '#16a085';
-            ctx.fill();
-          } else if (arma.type === 'ranged') {
-            // Mira o cañón de los fusiles
-            ctx.fillStyle = '#34495e';
-            ctx.fillRect(puntaX - (p.facing === 1 ? 0 : 4), puntaY - 3, 4, 6);
             
-            // Destello de proyectil saliendo de la punta
-            if (destelloDisparo) {
-              ctx.beginPath();
-              ctx.arc(puntaX + 4 * p.facing, puntaY, 10, 0, Math.PI * 2);
-              ctx.fillStyle = 'rgba(255, 242, 0, 0.8)';
-              ctx.fill();
-            }
+            // Línea de brillo en medio del espadón
+            ctx.beginPath();
+            ctx.moveTo(12, 0);
+            ctx.lineTo(largoArma - 4, 0);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          } 
+          else if (p.weapon === 'hoja_rapida') {
+            // Agarre y cazoleta circular de florete
+            ctx.beginPath();
+            ctx.arc(6, 0, 5, -Math.PI/2, Math.PI/2);
+            ctx.strokeStyle = '#f1c40f';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Hoja ultra-fina (Estilete)
+            ctx.beginPath();
+            ctx.moveTo(6, 0);
+            ctx.lineTo(largoArma, 0);
+            ctx.strokeStyle = '#ecf0f1';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+          } 
+          else if (p.weapon === 'daga') {
+            // Mango simple
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(5, 0);
+            ctx.strokeStyle = '#7f8c8d';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Hoja pequeña muy filosa
+            ctx.beginPath();
+            ctx.moveTo(5, -2);
+            ctx.lineTo(largoArma - 3, -2);
+            ctx.lineTo(largoArma, 0);
+            ctx.lineTo(largoArma - 3, 2);
+            ctx.lineTo(5, 2);
+            ctx.closePath();
+            ctx.fillStyle = '#eaf0f1';
+            ctx.fill();
+          } 
+          else if (p.weapon === 'lanza') {
+            // Asta de madera larga
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(largoArma - 12, 0);
+            ctx.strokeStyle = '#a0522d';
+            ctx.lineWidth = 3.5;
+            ctx.stroke();
+
+            // Punta de lanza en forma de rombo metálico
+            ctx.beginPath();
+            ctx.moveTo(largoArma - 12, -4);
+            ctx.lineTo(largoArma, 0);
+            ctx.lineTo(largoArma - 12, 4);
+            ctx.lineTo(largoArma - 15, 0);
+            ctx.closePath();
+            ctx.fillStyle = '#bdc3c7';
+            ctx.fill();
+            ctx.strokeStyle = '#7f8c8d';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          } 
+          else if (p.weapon === 'hacha') {
+            // Mango de madera
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(largoArma, 0);
+            ctx.strokeStyle = '#8b5a2b';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Cuchilla doble de hacha de batalla
+            ctx.beginPath();
+            ctx.moveTo(largoArma - 10, 0);
+            // Filo superior curvado
+            ctx.quadraticCurveTo(largoArma - 12, -14, largoArma, -16);
+            ctx.quadraticCurveTo(largoArma + 3, -8, largoArma - 2, 0);
+            // Filo inferior curvado
+            ctx.quadraticCurveTo(largoArma + 3, 8, largoArma, 16);
+            ctx.quadraticCurveTo(largoArma - 12, 14, largoArma - 10, 0);
+            ctx.closePath();
+            ctx.fillStyle = '#95a5a6';
+            ctx.fill();
+            ctx.strokeStyle = '#ecf0f1';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          } 
+          else if (p.weapon === 'martillo') {
+            // Mango de acero
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(largoArma, 0);
+            ctx.strokeStyle = '#7f8c8d';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+
+            // Cabeza del martillo colosal
+            ctx.fillStyle = '#4c566a';
+            // Dibujamos un martillo rectangular masivo en el extremo
+            ctx.fillRect(largoArma - 12, -14, 16, 28);
+            
+            // Bordes metálicos reforzados
+            ctx.strokeStyle = '#d8dee9';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(largoArma - 12, -14, 16, 28);
+          } 
+          else if (p.weapon === 'gancho') {
+            // Cable del gancho
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(largoArma - 6, 0);
+            ctx.strokeStyle = '#7f8c8d';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Garra de anclaje (Punta de arpón de tres puntas)
+            ctx.beginPath();
+            ctx.moveTo(largoArma - 6, 0);
+            ctx.lineTo(largoArma, 0);
+            ctx.moveTo(largoArma - 6, -6);
+            ctx.quadraticCurveTo(largoArma - 3, -6, largoArma, -1);
+            ctx.moveTo(largoArma - 6, 6);
+            ctx.quadraticCurveTo(largoArma - 3, 6, largoArma, 1);
+            ctx.strokeStyle = '#1abc9c';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          } 
+          else if (p.weapon === 'fusil_rapido') {
+            // Culata y agarre
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(-4, -2, 6, 5); // Culata trasera
+            ctx.fillRect(4, 0, 3, 6);   // Empuñadura
+
+            // Cuerpo del rifle
+            ctx.fillStyle = '#f1c40f';
+            ctx.fillRect(0, -3, largoArma - 10, 5);
+
+            // Cargador de munición curvo
+            ctx.beginPath();
+            ctx.arc(6, 6, 8, -Math.PI/4, Math.PI/10);
+            ctx.strokeStyle = '#34495e';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Cañón y mira superior
+            ctx.fillStyle = '#7f8c8d';
+            ctx.fillRect(largoArma - 10, -1.5, 10, 2); // Cañón delgado
+            ctx.fillRect(largoArma - 12, -4, 2, 2);   // Mira
+          } 
+          else if (p.weapon === 'fusil_pesado') {
+            // Sniper / Cañón pesado
+            // Culata reforzada grande
+            ctx.fillStyle = '#34495e';
+            ctx.fillRect(-6, -4, 8, 7); 
+            ctx.fillRect(5, 0, 4, 8); 
+
+            // Cuerpo metálico largo
+            ctx.fillStyle = '#c0392b';
+            ctx.fillRect(0, -4, largoArma - 16, 7);
+
+            // Mira telescópica (Mira sniper)
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(6, -7, 10, 3);
+            ctx.beginPath();
+            ctx.arc(6, -5.5, 2.5, 0, Math.PI*2);
+            ctx.arc(16, -5.5, 2.5, 0, Math.PI*2);
+            ctx.fill();
+
+            // Cañón grueso extendido
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(largoArma - 16, -2, 16, 4);
+          } 
+          else if (p.weapon === 'fusil_plasma') {
+            // Fusil de plasma futurista de ciencia ficción
+            ctx.fillStyle = '#3f3151';
+            ctx.fillRect(-4, -4, 6, 8); // Culata sci-fi
+            ctx.fillRect(4, 1, 3, 6);   // Empuñadura
+
+            // Cuerpo ovalado de la pistola de plasma
+            ctx.fillStyle = '#8e44ad';
+            ctx.beginPath();
+            ctx.roundRect(0, -5, largoArma - 8, 9, 3);
+            ctx.fill();
+
+            // Núcleo de energía cargada (Glow)
+            ctx.fillStyle = '#00ffff';
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 6;
+            ctx.fillRect(6, -2.5, 12, 4);
+            ctx.shadowBlur = 0; // Restaurar
+
+            // Cañón del proyector de energía dual
+            ctx.fillStyle = '#dcdde1';
+            ctx.fillRect(largoArma - 8, -4, 8, 2.5);
+            ctx.fillRect(largoArma - 8, 0.5, 8, 2.5);
           }
 
-          // Guardamano de la espada
-          ctx.beginPath();
-          ctx.moveTo(manoX, manoY - 4);
-          ctx.lineTo(manoX, manoY + 4);
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 3;
-          ctx.stroke();
+          // Renderizar el destello de disparo justo en la punta (en coordenadas locales)
+          if (destelloDisparo) {
+            ctx.beginPath();
+            ctx.arc(largoArma + 4, 0, 10, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff200';
+            ctx.shadowColor = '#fff200';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+
+          ctx.restore();
 
           // Identificador encima de la cabeza
           ctx.font = 'bold 11px sans-serif';
