@@ -34,17 +34,17 @@ const ROLE_CONFIG = {
 
 // ============== ARMAS DISPONIBLES ==============
 const WEAPONS = {
-  espada: { name: 'Espada', range: 45, damage: 12, knockback: 16, attackDuration: 10, type: 'melee' },
-  espadon: { name: 'Espadón', range: 65, damage: 22, knockback: 24, attackDuration: 18, type: 'melee' },
-  hoja_rapida: { name: 'Hoja Rápida', range: 35, damage: 8, knockback: 10, attackDuration: 6, type: 'melee' },
+  espada: { name: 'Espada', range: 45, damage: 12, knockback: 16, attackDuration: 10, type: 'melee_slash' },
+  espadon: { name: 'Espadón', range: 65, damage: 22, knockback: 24, attackDuration: 18, type: 'melee_slash' },
+  hoja_rapida: { name: 'Hoja Rápida', range: 35, damage: 8, knockback: 10, attackDuration: 6, type: 'melee_slash' },
   gancho: { name: 'Gancho de Agarre', type: 'grapple' },
   fusil_rapido: { name: 'Fusil Rápido', damage: 6, knockback: 4, cooldown: 12, type: 'ranged', speed: 16, size: 4, color: '#f1c40f' },
   fusil_pesado: { name: 'Fusil Pesado', damage: 25, knockback: 25, cooldown: 45, type: 'ranged', speed: 22, size: 8, color: '#e74c3c' },
   fusil_plasma: { name: 'Fusil Plasma', damage: 14, knockback: 12, cooldown: 24, type: 'ranged', speed: 12, size: 6, color: '#9b59b6' },
-  lanza: { name: 'Lanza', range: 65, damage: 8, knockback: 10, attackDuration: 14, type: 'melee' },
-  hacha: { name: 'Hacha', range: 35, damage: 20, knockback: 22, attackDuration: 18, type: 'melee' },
-  daga: { name: 'Daga', range: 25, damage: 6, knockback: 6, attackDuration: 6, type: 'melee' },
-  martillo: { name: 'Martillo', range: 40, damage: 15, knockback: 30, attackDuration: 22, type: 'melee' },
+  lanza: { name: 'Lanza', range: 65, damage: 8, knockback: 10, attackDuration: 14, type: 'melee_thrust' },
+  hacha: { name: 'Hacha', range: 35, damage: 20, knockback: 22, attackDuration: 18, type: 'melee_heavy' },
+  daga: { name: 'Daga', range: 25, damage: 6, knockback: 6, attackDuration: 6, type: 'melee_thrust' },
+  martillo: { name: 'Martillo', range: 40, damage: 15, knockback: 30, attackDuration: 22, type: 'melee_heavy' },
 };
 const WEAPON_KEYS = Object.keys(WEAPONS);
 let pickupIdCounter = 1;
@@ -57,7 +57,6 @@ function asignarArmasAleatorias() {
   for (let id in players) {
     if (players[id].role <= MAX_PLAYERS) {
       players[id].weapon = getRandomWeapon();
-      // Resetear estados de ganchos si los tenían activos
       players[id].hook = null; 
     }
   }
@@ -66,7 +65,6 @@ function asignarArmasAleatorias() {
 function spawnWeaponPickup() {
   const id = 'pk' + pickupIdCounter++;
   const type = getRandomWeapon();
-  // No spawnear directamente en el abismo si el mapa actual es de vacío
   let spawnY = FLOOR_Y - 14;
   const map = MAPS[currentMapIndex];
   if (map.hasVoid && map.platforms.length > 0) {
@@ -120,12 +118,11 @@ const MAPS = [
       { x: 350, y: 340, width: 100, height: 16 },
     ],
   },
-  // --- NUEVOS MAPAS ---
   {
     name: 'Abismo del Vacío (Peligro de Caída)',
     bg: '#0f0f14',
     floorColor: '#1e272e',
-    hasVoid: true, // Mapa con caída libre
+    hasVoid: true,
     platforms: [
       { x: 50, y: 350, width: 220, height: 20 },
       { x: 530, y: 350, width: 220, height: 20 },
@@ -136,7 +133,7 @@ const MAPS = [
     name: 'Estructuras Elevadas (Peligro de Caída)',
     bg: '#2c3e50',
     floorColor: '#7f8c8d',
-    hasVoid: true, // Mapa con caída libre
+    hasVoid: true,
     platforms: [
       { x: 150, y: 380, width: 120, height: 20 },
       { x: 530, y: 380, width: 120, height: 20 },
@@ -149,7 +146,7 @@ const MAPS = [
     name: 'Puentes Suspendidos (Peligro de Caída)',
     bg: '#1e1e24',
     floorColor: '#d35400',
-    hasVoid: true, // Mapa con caída libre
+    hasVoid: true,
     platforms: [
       { x: 30, y: 390, width: 160, height: 15 },
       { x: 610, y: 390, width: 160, height: 15 },
@@ -246,8 +243,8 @@ io.on('connection', (socket) => {
     shootCooldown: 0,
     color: cfg.color,
     score: 0,
-    weapon: getRandomWeapon(), // Arma aleatoria al ingresar
-    hook: null, // Guardará la info de la cuerda/anclaje del gancho
+    weapon: getRandomWeapon(), 
+    hook: null, 
     inputs: { left: false, right: false, up: false, attack: false },
   };
 
@@ -263,6 +260,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('Usuario desconectado:', socket.id);
     delete players[socket.id];
+    verificarFinDeRonda();
     io.emit('estadoJuego', empaquetarEstado());
   });
 });
@@ -277,12 +275,12 @@ function empaquetarEstado() {
   };
 }
 
-// ============== ATAQUE DE MELEE ==============
+// ============== COMBATE MELEE ==============
 function verificarGolpeMelee(attackerId) {
   let attacker = players[attackerId];
   if (!attacker) return;
   const arma = WEAPONS[attacker.weapon];
-  if (!arma || arma.type !== 'melee') return;
+  if (!arma || !arma.type.startsWith('melee')) return;
 
   for (let targetId in players) {
     if (targetId === attackerId) continue;
@@ -311,7 +309,7 @@ function aplicarDanioYRetroceso(attackerId, targetId, damage, kbX) {
   target.health -= damage;
   target.vx = kbX;
   target.vy = -7;
-  target.hook = null; // Romper gancho al recibir un golpe
+  target.hook = null; 
 
   if (target.health <= 0) {
     ejecutarMuerte(attacker, target);
@@ -329,22 +327,87 @@ function ejecutarMuerte(attacker, target) {
     }
   }
 
-  // Resurgir tras 1.5s
-  setTimeout(() => {
-    if (players[target.id]) {
-      const c = ROLE_CONFIG[players[target.id].role];
-      players[target.id].health = 100;
-      players[target.id].x = c ? c.x : 400;
-      players[target.id].y = 100;
-      players[target.id].vx = 0;
-      players[target.id].vy = 0;
-      players[target.id].weapon = getRandomWeapon(); // Recibe nueva arma al azar al reaparecer
-      players[target.id].hook = null;
-    }
-  }, 1500);
+  // Comprobar si al morir este jugador la ronda debe terminar por quedar un solo sobreviviente
+  verificarFinDeRonda();
 }
 
-// ============== FIN DE PARTIDA Y PODIO ==============
+// ============== CAMBIO DE RONDA (UN SOLO SOBREVIVIENTE) ==============
+function verificarFinDeRonda() {
+  if (!matchActive) return;
+
+  let jugadoresActivos = Object.values(players).filter(p => p.role <= MAX_PLAYERS);
+  let jugadoresVivos = jugadoresActivos.filter(p => p.health > 0);
+
+  // Si hay más de un jugador en total en la sala, y solo queda uno vivo, pasamos de ronda/mapa
+  if (jugadoresActivos.length > 1 && jugadoresVivos.length === 1) {
+    let ganadorRonda = jugadoresVivos[0];
+    ganadorRonda.score += 1;
+
+    if (ganadorRonda.score >= PUNTOS_PARA_GANAR) {
+      terminarPartida();
+      return;
+    }
+
+    matchActive = false;
+    io.emit('estadoJuego', empaquetarEstado());
+
+    // Reiniciar automáticamente la siguiente ronda en 2 segundos con nuevo mapa y armas al azar
+    setTimeout(() => {
+      currentMapIndex = Math.floor(Math.random() * MAPS.length);
+      weaponPickups = {};
+      projectiles = [];
+
+      asignarArmasAleatorias();
+
+      for (let id in players) {
+        let p = players[id];
+        if (p.role <= MAX_PLAYERS) {
+          const c = ROLE_CONFIG[p.role];
+          p.health = 100;
+          p.x = c ? c.x : 400;
+          p.y = 100;
+          p.vx = 0;
+          p.vy = 0;
+          p.isAttacking = false;
+          p.attackTimer = 0;
+          p.shootCooldown = 0;
+          p.hook = null;
+        }
+      }
+      matchActive = true;
+      io.emit('nuevaPartida', { mapIndex: currentMapIndex });
+    }, 2000);
+  } 
+  // Caso de empate (todos mueren al mismo tiempo)
+  else if (jugadoresActivos.length > 1 && jugadoresVivos.length === 0) {
+    matchActive = false;
+    setTimeout(() => {
+      currentMapIndex = Math.floor(Math.random() * MAPS.length);
+      weaponPickups = {};
+      projectiles = [];
+      asignarArmasAleatorias();
+      for (let id in players) {
+        let p = players[id];
+        if (p.role <= MAX_PLAYERS) {
+          const c = ROLE_CONFIG[p.role];
+          p.health = 100;
+          p.x = c ? c.x : 400;
+          p.y = 100;
+          p.vx = 0;
+          p.vy = 0;
+          p.isAttacking = false;
+          p.attackTimer = 0;
+          p.shootCooldown = 0;
+          p.hook = null;
+        }
+      }
+      matchActive = true;
+      io.emit('nuevaPartida', { mapIndex: currentMapIndex });
+    }, 2000);
+  }
+}
+
+// ============== FIN DE PARTIDA Y PODIO (AL ALCANZAR EL LÍMITE DE PUNTOS) ==============
 function terminarPartida() {
   matchActive = false;
 
@@ -361,7 +424,6 @@ function terminarPartida() {
     weaponPickups = {};
     projectiles = [];
 
-    // Cambiar de mapa, restablecer vidas y asignar un arma totalmente aleatoria a cada uno
     asignarArmasAleatorias();
 
     for (let id in players) {
@@ -397,7 +459,6 @@ setInterval(() => {
 
   const map = MAPS[currentMapIndex];
 
-  // Generación de armas flotantes en mapas
   framesDesdeUltimoPickup++;
   if (framesDesdeUltimoPickup > 240 && Object.keys(weaponPickups).length < 3) {
     if (Math.random() < 0.05) {
@@ -406,14 +467,12 @@ setInterval(() => {
     }
   }
 
-  // --- Actualizar Proyectiles (Balas y Ganchos) ---
   for (let i = projectiles.length - 1; i >= 0; i--) {
     let proj = projectiles[i];
     
     if (proj.type === 'bullet') {
       proj.x += proj.vx;
       
-      // Colisión de bala contra jugadores
       let hit = false;
       for (let targetId in players) {
         if (targetId === proj.ownerId) continue;
@@ -428,26 +487,22 @@ setInterval(() => {
         }
       }
 
-      // Salir de pantalla
       if (proj.x < 0 || proj.x > CANVAS_WIDTH || hit) {
         projectiles.splice(i, 1);
       }
     } 
     else if (proj.type === 'hook') {
-      // Movimiento del proyectil gancho
       if (proj.state === 'flying') {
         proj.x += proj.vx;
         proj.y += proj.vy;
 
         let hitPlatform = false;
         
-        // Verificar impacto en el techo del mapa
         if (proj.y <= 0) {
           proj.y = 0;
           hitPlatform = true;
         }
 
-        // Verificar impacto en las plataformas
         for (let plat of map.platforms) {
           if (proj.x >= plat.x && proj.x <= plat.x + plat.width) {
             if (Math.abs(proj.y - plat.y) < 10) {
@@ -464,9 +519,8 @@ setInterval(() => {
           if (owner) {
             owner.hook = { x: proj.x, y: proj.y };
           }
-          projectiles.splice(i, 1); // Remover de proyectiles activos, ya está sujeto
+          projectiles.splice(i, 1); 
         } else {
-          // Si el gancho vuela demasiado lejos, se rompe
           let owner = players[proj.ownerId];
           if (!owner) {
             projectiles.splice(i, 1);
@@ -481,13 +535,11 @@ setInterval(() => {
     }
   }
 
-  // --- Actualizar Físicas de Jugadores ---
   for (let id in players) {
     let p = players[id];
     if (p.role > MAX_PLAYERS) continue;
 
     if (p.health > 0) {
-      // 1. Inputs y Movimiento horizontal
       if (p.inputs.left) {
         p.vx = -5.5;
         p.facing = -1;
@@ -501,10 +553,8 @@ setInterval(() => {
         }
       }
 
-      // 2. Saltar (Solo si no está colgando del gancho o está en el suelo/plataforma)
       if (p.inputs.up) {
         if (p.hook) {
-          // Soltar gancho saltando
           p.hook = null;
           p.vy = -8;
         } else if (p.y >= FLOOR_Y - PLAYER_RADIUS || p.enPlataforma) {
@@ -512,33 +562,28 @@ setInterval(() => {
         }
       }
 
-      // 3. Físicas bajo tensión del gancho de agarre
       if (p.hook) {
         let dx = p.hook.x - p.x;
         let dy = p.hook.y - p.y;
         let dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist > 20) {
-          // Aplicar fuerza de atracción/tensión constante hacia el punto de anclaje
           p.vx += (dx / dist) * 0.95;
-          p.vy += (dy / dist) * 0.95 - 0.2; // Aligera el peso de la gravedad mientras se eleva
+          p.vy += (dy / dist) * 0.95 - 0.2; 
           
-          // Limitar velocidades máximas en la tirolesa/gancho
           p.vx = Math.max(-10, Math.min(10, p.vx));
           p.vy = Math.max(-10, Math.min(10, p.vy));
         } else {
-          // Llegó al anclaje, soltar automáticamente
           p.hook = null;
         }
       }
 
-      // 4. Mecánica de Ataque / Disparo
       if (p.shootCooldown > 0) p.shootCooldown--;
 
       if (p.inputs.attack) {
         const arma = WEAPONS[p.weapon];
         if (arma) {
-          if (arma.type === 'melee' && !p.isAttacking && p.attackTimer === 0) {
+          if (arma.type.startsWith('melee') && !p.isAttacking && p.attackTimer === 0) {
             p.isAttacking = true;
             p.attackTimer = arma.attackDuration;
             verificarGolpeMelee(id);
@@ -546,7 +591,6 @@ setInterval(() => {
           } 
           else if (arma.type === 'ranged' && p.shootCooldown === 0) {
             p.shootCooldown = arma.cooldown;
-            // Crear proyectiles de balas
             projectiles.push({
               type: 'bullet',
               ownerId: p.id,
@@ -558,12 +602,9 @@ setInterval(() => {
               size: arma.size,
               color: arma.color
             });
-            // Pequeño retroceso al disparar
             p.vx = -p.facing * (arma.knockback * 0.35);
           }
           else if (arma.type === 'grapple' && !p.hook) {
-            // Disparar gancho (si no hay uno activo ya)
-            // Buscar si ya hay un proyectil gancho volando de este jugador y retirarlo
             projectiles = projectiles.filter(pr => !(pr.type === 'hook' && pr.ownerId === p.id));
             
             projectiles.push({
@@ -572,7 +613,7 @@ setInterval(() => {
               x: p.x,
               y: p.y,
               vx: p.facing * 14,
-              vy: -14, // Dirección oblicua/arriba
+              vy: -14, 
               state: 'flying'
             });
           }
@@ -580,7 +621,6 @@ setInterval(() => {
       }
     }
 
-    // 5. Aplicar fuerzas de física
     p.y += p.vy;
     p.vy += GRAVITY;
     p.x += p.vx;
@@ -589,7 +629,6 @@ setInterval(() => {
       p.vx *= 0.98;
     }
 
-    // 6. Colisión con plataformas del escenario actual
     p.enPlataforma = false;
     for (let plat of map.platforms) {
       const dentroX =
@@ -605,20 +644,17 @@ setInterval(() => {
         p.y = plat.y - PLAYER_RADIUS;
         p.vy = 0;
         p.enPlataforma = true;
-        p.hook = null; // Detener tirón de gancho si pisa terreno
+        p.hook = null; 
       }
     }
 
-    // 7. Límites y Muertes del Escenario
     if (map.hasVoid) {
-      // MUERTE POR CAÍDA AL VACÍO
       if (p.y > CANVAS_HEIGHT + 50) {
         if (p.health > 0) {
           ejecutarMuerte(null, p);
         }
       }
     } else {
-      // Suelo indestructible en mapas normales
       if (p.y >= FLOOR_Y - PLAYER_RADIUS) {
         p.y = FLOOR_Y - PLAYER_RADIUS;
         p.vy = 0;
@@ -626,7 +662,6 @@ setInterval(() => {
       }
     }
 
-    // Límites laterales de la pantalla
     if (p.x < PLAYER_RADIUS) {
       p.x = PLAYER_RADIUS;
       p.vx *= -0.5;
@@ -641,7 +676,6 @@ setInterval(() => {
       if (p.attackTimer === 0) p.isAttacking = false;
     }
 
-    // 8. Recoger armas del suelo de forma clásica
     if (p.health > 0) {
       for (let pkId in weaponPickups) {
         let pk = weaponPickups[pkId];
@@ -650,7 +684,7 @@ setInterval(() => {
         let dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 32) {
           p.weapon = pk.type;
-          p.hook = null; // Romper gancho viejo
+          p.hook = null; 
           delete weaponPickups[pkId];
         }
       }
@@ -660,7 +694,6 @@ setInterval(() => {
   io.emit('estadoJuego', empaquetarEstado());
 }, 1000 / 60);
 
-// Escuchar puerto dinámico de Render o 3000 local
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Servidor de combate activo en el puerto ${PORT}`);
