@@ -217,7 +217,6 @@
 
       const keys = { left: false, right: false, up: false, attack: false };
 
-      // Base de 13 mapas visuales (deben coincidir nombres y configuraciones de plataformas)
       const MAPS = [
         { name: 'Arena Clásica', bg: '#2f3542', floorColor: '#4b5563', hasVoid: false, platforms: [] },
         {
@@ -350,19 +349,18 @@
         },
       ];
 
-      // Definición de Armas Visuales (Incluidos los 3 Fusiles, Ganchos y variantes de Espadas)
       const WEAPON_VISUALS = {
-        espada: { name: 'Espada', length: 32, attackLength: 50, color: '#f1c40f', width: 5, icon: '🗡️' },
-        espadon: { name: 'Espadón', length: 48, attackLength: 68, color: '#f39c12', width: 8, icon: '⚔️' },
-        hoja_rapida: { name: 'Hoja Rápida', length: 24, attackLength: 36, color: '#f1c40f', width: 4, icon: '🗡️' },
-        gancho: { name: 'Gancho de Agarre', length: 20, attackLength: 20, color: '#1abc9c', width: 4, icon: '⚓' },
-        fusil_rapido: { name: 'Fusil Rápido', length: 32, attackLength: 32, color: '#f1c40f', width: 6, icon: '🔫' },
-        fusil_pesado: { name: 'Fusil Pesado', length: 44, attackLength: 44, color: '#e74c3c', width: 9, icon: '💥' },
-        fusil_plasma: { name: 'Fusil Plasma', length: 36, attackLength: 36, color: '#9b59b6', width: 7, icon: '🌌' },
-        lanza: { name: 'Lanza', length: 46, attackLength: 68, color: '#95a5a6', width: 4, icon: '🔱' },
-        hacha: { name: 'Hacha', length: 26, attackLength: 38, color: '#e74c3c', width: 9, icon: '🪓' },
-        daga: { name: 'Daga', length: 16, attackLength: 26, color: '#ecf0f1', width: 3, icon: '🔪' },
-        martillo: { name: 'Martillo', length: 28, attackLength: 40, color: '#9b59b6', width: 11, icon: '🔨' },
+        espada: { name: 'Espada', length: 32, attackLength: 50, color: '#f1c40f', width: 5, icon: '🗡️', type: 'melee_slash' },
+        espadon: { name: 'Espadón', length: 48, attackLength: 68, color: '#f39c12', width: 8, icon: '⚔️', type: 'melee_slash' },
+        hoja_rapida: { name: 'Hoja Rápida', length: 24, attackLength: 36, color: '#f1c40f', width: 4, icon: '🗡️', type: 'melee_slash' },
+        gancho: { name: 'Gancho de Agarre', length: 24, attackLength: 24, color: '#1abc9c', width: 4, icon: '⚓', type: 'grapple' },
+        fusil_rapido: { name: 'Fusil Rápido', length: 32, attackLength: 32, color: '#f1c40f', width: 6, icon: '🔫', type: 'ranged' },
+        fusil_pesado: { name: 'Fusil Pesado', length: 44, attackLength: 44, color: '#e74c3c', width: 9, icon: '💥', type: 'ranged' },
+        fusil_plasma: { name: 'Fusil Plasma', length: 36, attackLength: 36, color: '#9b59b6', width: 7, icon: '🌌', type: 'ranged' },
+        lanza: { name: 'Lanza', length: 50, attackLength: 72, color: '#95a5a6', width: 4, icon: '🔱', type: 'melee_thrust' },
+        hacha: { name: 'Hacha', length: 28, attackLength: 42, color: '#e74c3c', width: 9, icon: '🪓', type: 'melee_heavy' },
+        daga: { name: 'Daga', length: 18, attackLength: 28, color: '#ecf0f1', width: 3, icon: '🔪', type: 'melee_thrust' },
+        martillo: { name: 'Martillo', length: 30, attackLength: 44, color: '#9b59b6', width: 11, icon: '🔨', type: 'melee_heavy' },
       };
 
       const PICKUP_LETTER = {
@@ -418,7 +416,6 @@
         }
       });
 
-      // ===== FIN DE PARTIDA: MOSTRAR PODIO =====
       socket.on('finDePartida', (data) => {
         mostrarPodio(data.podium);
       });
@@ -477,17 +474,14 @@
         overlay.style.display = 'flex';
       }
 
-      // ===== RENDERIZADO GENERAL =====
       function draw() {
         const map = MAPS[mapIndex] || MAPS[0];
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Fondo del mapa actual
         ctx.fillStyle = map.bg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Renderizar Suelo si no es un mapa con Caída al Vacío
         if (!map.hasVoid) {
           ctx.fillStyle = map.floorColor;
           ctx.fillRect(0, FLOOR_Y, canvas.width, 100);
@@ -495,7 +489,6 @@
           ctx.fillRect(0, FLOOR_Y, canvas.width, 8);
         }
 
-        // Plataformas flotantes del mapa
         for (let plat of map.platforms) {
           ctx.fillStyle = map.floorColor;
           ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
@@ -503,7 +496,6 @@
           ctx.fillRect(plat.x, plat.y, plat.width, 4);
         }
 
-        // Armas en el suelo
         for (let id in weaponPickups) {
           let pk = weaponPickups[id];
           const visual = WEAPON_VISUALS[pk.type] || WEAPON_VISUALS.espada;
@@ -523,7 +515,6 @@
           ctx.textAlign = 'left';
         }
 
-        // Proyectiles (Balas de fusiles o Ganchos disparados en el aire)
         for (let proj of projectiles) {
           if (proj.type === 'bullet') {
             ctx.beginPath();
@@ -532,10 +523,9 @@
             ctx.shadowColor = proj.color || '#fff';
             ctx.shadowBlur = 8;
             ctx.fill();
-            ctx.shadowBlur = 0; // Resetear sombra
+            ctx.shadowBlur = 0; 
           } 
           else if (proj.type === 'hook') {
-            // Dibujar la soga que une al jugador disparador con el gancho en el aire
             let owner = jugadores[proj.ownerId];
             if (owner) {
               ctx.beginPath();
@@ -543,11 +533,10 @@
               ctx.lineTo(proj.x, proj.y);
               ctx.strokeStyle = '#95a5a6';
               ctx.lineWidth = 2;
-              ctx.setLineDash([4, 4]); // Estilo soga/cuerda discontinua
+              ctx.setLineDash([4, 4]); 
               ctx.stroke();
-              ctx.setLineDash([]); // Reset
+              ctx.setLineDash([]); 
             }
-            // Dibujar punta del gancho
             ctx.beginPath();
             ctx.arc(proj.x, proj.y, 6, 0, Math.PI * 2);
             ctx.fillStyle = '#1abc9c';
@@ -560,12 +549,11 @@
           let p = jugadores[id];
           if (p.role > 4) continue;
 
-          // Se remueve completamente el renderizado si ha muerto o si cayó al vacío sin emitir texto
+          // Desaparece por completo al morir
           if (p.health <= 0) {
             continue;
           }
 
-          // Dibujar la soga si el jugador tiene un gancho enganchado/activo (latched)
           if (p.hook) {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y + 4);
@@ -574,7 +562,6 @@
             ctx.lineWidth = 2.5;
             ctx.stroke();
             
-            // Dibujar pinza en la plataforma
             ctx.beginPath();
             ctx.arc(p.hook.x, p.hook.y, 5, 0, Math.PI * 2);
             ctx.fillStyle = '#16a085';
@@ -611,26 +598,60 @@
           ctx.lineTo(p.x + 6, p.y + 25);
           ctx.stroke();
 
-          // --- ARMA EQUIPADA (SOPORTA CUERPOS CORTOS/LARGOS Y BALÍSTICOS) ---
-          let largoArma = p.isAttacking ? (arma.attackLength || arma.length) : arma.length;
-          let anguloArma = p.isAttacking ? 0 : 0.4;
-
+          // --- ANIMACIONES PERSONALIZADAS SEGÚN TIPO DE ARMA ---
           let manoX = p.x + 4 * p.facing;
           let manoY = p.y + 4;
+          
+          let largoArma = arma.length;
+          let anguloArma = 0.4; // Ángulo por defecto (inclinado hacia abajo)
+
+          if (p.isAttacking) {
+            if (arma.type === 'melee_slash') {
+              // Animación de espadas: Barrido circular amplio
+              largoArma = arma.attackLength;
+              anguloArma = -0.3; // Sube al golpear
+
+              ctx.beginPath();
+              ctx.arc(manoX, manoY, largoArma + 5, -0.4, 0.4);
+              ctx.strokeStyle = 'rgba(255, 242, 0, 0.15)';
+              ctx.lineWidth = 8;
+              ctx.stroke();
+            } 
+            else if (arma.type === 'melee_thrust') {
+              // Animación de lanzas/dagas: Estocada recta hacia adelante
+              largoArma = arma.attackLength;
+              anguloArma = 0; // Recto
+
+              ctx.beginPath();
+              ctx.moveTo(manoX, manoY);
+              ctx.lineTo(manoX + 10 * p.facing, manoY);
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            } 
+            else if (arma.type === 'melee_heavy') {
+              // Animación de hachas/martillos: Golpe descendente brusco
+              largoArma = arma.attackLength;
+              anguloArma = 1.2; // Apunta directo al suelo
+
+              ctx.beginPath();
+              ctx.arc(manoX, manoY, largoArma, 0.2, 1.3);
+              ctx.strokeStyle = 'rgba(231, 76, 60, 0.2)';
+              ctx.lineWidth = 6;
+              ctx.stroke();
+            }
+          }
+
+          // Si es un arma a distancia y está disparando (detectado por un cooldown alto activo)
+          let destelloDisparo = false;
+          if (arma.type === 'ranged' && p.inputs.attack && p.shootCooldown > 0) {
+            destelloDisparo = true;
+          }
 
           let puntaX = manoX + Math.cos(anguloArma) * largoArma * p.facing;
           let puntaY = manoY + Math.sin(anguloArma) * largoArma;
 
-          // Animación de barrido para cuerpo a cuerpo
-          if (p.isAttacking && (p.weapon === 'espada' || p.weapon === 'espadon' || p.weapon === 'hoja_rapida' || p.weapon === 'lanza' || p.weapon === 'hacha' || p.weapon === 'daga' || p.weapon === 'martillo')) {
-            ctx.beginPath();
-            ctx.arc(manoX, manoY, largoArma + 5, -0.2, 0.2);
-            ctx.strokeStyle = 'rgba(255, 242, 0, 0.2)';
-            ctx.lineWidth = 8;
-            ctx.stroke();
-          }
-
-          // Dibujar silueta del arma
+          // Dibujar Silueta física del Arma
           ctx.beginPath();
           ctx.moveTo(manoX, manoY);
           ctx.lineTo(puntaX, puntaY);
@@ -638,6 +659,38 @@
           ctx.lineWidth = arma.width;
           ctx.stroke();
 
+          // Detalles específicos del diseño visual del arma
+          if (p.weapon === 'martillo') {
+            // Cabeza del martillo
+            ctx.fillStyle = '#7f8c8d';
+            ctx.fillRect(puntaX - 8, puntaY - 12, 16, 24);
+          } else if (p.weapon === 'hacha') {
+            // Filo del hacha
+            ctx.beginPath();
+            ctx.arc(puntaX, puntaY, 8, -Math.PI / 2, Math.PI / 2);
+            ctx.fillStyle = '#bdc3c7';
+            ctx.fill();
+          } else if (p.weapon === 'gancho') {
+            // Garra del gancho
+            ctx.beginPath();
+            ctx.arc(puntaX, puntaY, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#16a085';
+            ctx.fill();
+          } else if (arma.type === 'ranged') {
+            // Mira o cañón de los fusiles
+            ctx.fillStyle = '#34495e';
+            ctx.fillRect(puntaX - (p.facing === 1 ? 0 : 4), puntaY - 3, 4, 6);
+            
+            // Destello de proyectil saliendo de la punta
+            if (destelloDisparo) {
+              ctx.beginPath();
+              ctx.arc(puntaX + 4 * p.facing, puntaY, 10, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(255, 242, 0, 0.8)';
+              ctx.fill();
+            }
+          }
+
+          // Guardamano de la espada
           ctx.beginPath();
           ctx.moveTo(manoX, manoY - 4);
           ctx.lineTo(manoX, manoY + 4);
