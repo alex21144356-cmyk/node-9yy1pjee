@@ -156,7 +156,7 @@
         <div class="health-bar-container">
           <div id="p1-bar" class="health-bar" style="background:#ff4757;"></div>
         </div>
-        <div id="p1-weapon" class="weapon-line">Espada</div>
+        <div id="p1-weapon" class="weapon-line">Cargando...</div>
       </div>
       <div class="player-stats">
         <div id="p2-name" class="name-line" style="color: #2ed573">
@@ -165,7 +165,7 @@
         <div class="health-bar-container">
           <div id="p2-bar" class="health-bar" style="background:#2ed573;"></div>
         </div>
-        <div id="p2-weapon" class="weapon-line">Espada</div>
+        <div id="p2-weapon" class="weapon-line">Cargando...</div>
       </div>
       <div class="player-stats">
         <div id="p3-name" class="name-line" style="color: #1e90ff">
@@ -174,7 +174,7 @@
         <div class="health-bar-container">
           <div id="p3-bar" class="health-bar" style="background:#1e90ff;"></div>
         </div>
-        <div id="p3-weapon" class="weapon-line">Espada</div>
+        <div id="p3-weapon" class="weapon-line">Cargando...</div>
       </div>
       <div class="player-stats">
         <div id="p4-name" class="name-line" style="color: #9b59b6">
@@ -183,7 +183,7 @@
         <div class="health-bar-container">
           <div id="p4-bar" class="health-bar" style="background:#9b59b6;"></div>
         </div>
-        <div id="p4-weapon" class="weapon-line">Espada</div>
+        <div id="p4-weapon" class="weapon-line">Cargando...</div>
       </div>
     </div>
 
@@ -201,9 +201,9 @@
 
     <div id="rol-tag">Identificando rol en la arena...</div>
 
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
-      const socket = io();
+      const socket = io(window.location.origin);
       const canvas = document.getElementById('gameCanvas');
       const ctx = canvas.getContext('2d');
       const FLOOR_Y = 400;
@@ -212,17 +212,19 @@
       let miId = null;
       let jugadores = {};
       let weaponPickups = {};
+      let projectiles = [];
       let mapIndex = 0;
 
       const keys = { left: false, right: false, up: false, attack: false };
 
-      // Debe coincidir visualmente con los mapas definidos en el servidor
+      // Base de 13 mapas visuales (deben coincidir nombres y configuraciones de plataformas)
       const MAPS = [
-        { name: 'Arena Clásica', bg: '#2f3542', floorColor: '#4b5563', platforms: [] },
+        { name: 'Arena Clásica', bg: '#2f3542', floorColor: '#4b5563', hasVoid: false, platforms: [] },
         {
           name: 'Templo de Piedra',
           bg: '#2b2320',
           floorColor: '#6b4f3a',
+          hasVoid: false,
           platforms: [
             { x: 140, y: 300, width: 150, height: 16 },
             { x: 510, y: 300, width: 150, height: 16 },
@@ -232,6 +234,7 @@
           name: 'Plataformas Flotantes',
           bg: '#18222e',
           floorColor: '#34495e',
+          hasVoid: false,
           platforms: [
             { x: 70, y: 320, width: 120, height: 16 },
             { x: 340, y: 250, width: 120, height: 16 },
@@ -242,29 +245,131 @@
           name: 'Volcán',
           bg: '#2e1512',
           floorColor: '#c0392b',
+          hasVoid: false,
           platforms: [{ x: 250, y: 310, width: 300, height: 16 }],
         },
         {
           name: 'Hielo Eterno',
           bg: '#152530',
           floorColor: '#85c1e9',
+          hasVoid: false,
           platforms: [
             { x: 90, y: 280, width: 100, height: 16 },
             { x: 610, y: 280, width: 100, height: 16 },
             { x: 350, y: 340, width: 100, height: 16 },
           ],
         },
+        {
+          name: 'Abismo del Vacío (Peligro de Caída)',
+          bg: '#0f0f14',
+          floorColor: '#1e272e',
+          hasVoid: true,
+          platforms: [
+            { x: 50, y: 350, width: 220, height: 20 },
+            { x: 530, y: 350, width: 220, height: 20 },
+            { x: 300, y: 230, width: 200, height: 20 },
+          ],
+        },
+        {
+          name: 'Estructuras Elevadas (Peligro de Caída)',
+          bg: '#2c3e50',
+          floorColor: '#7f8c8d',
+          hasVoid: true,
+          platforms: [
+            { x: 150, y: 380, width: 120, height: 20 },
+            { x: 530, y: 380, width: 120, height: 20 },
+            { x: 300, y: 290, width: 200, height: 20 },
+            { x: 100, y: 190, width: 150, height: 20 },
+            { x: 550, y: 190, width: 150, height: 20 },
+          ],
+        },
+        {
+          name: 'Puentes Suspendidos (Peligro de Caída)',
+          bg: '#1e1e24',
+          floorColor: '#d35400',
+          hasVoid: true,
+          platforms: [
+            { x: 30, y: 390, width: 160, height: 15 },
+            { x: 610, y: 390, width: 160, height: 15 },
+            { x: 220, y: 300, width: 360, height: 15 },
+            { x: 340, y: 190, width: 120, height: 15 },
+          ],
+        },
+        {
+          name: 'Ruinas Metálicas',
+          bg: '#1a1d20',
+          floorColor: '#57606f',
+          hasVoid: false,
+          platforms: [
+            { x: 200, y: 320, width: 400, height: 16 },
+            { x: 300, y: 220, width: 200, height: 16 },
+          ],
+        },
+        {
+          name: 'Fábrica Tóxica',
+          bg: '#1b2a1a',
+          floorColor: '#2ed573',
+          hasVoid: false,
+          platforms: [
+            { x: 50, y: 280, width: 180, height: 16 },
+            { x: 570, y: 280, width: 180, height: 16 },
+            { x: 270, y: 200, width: 260, height: 16 },
+          ],
+        },
+        {
+          name: 'Laboratorio Espacial',
+          bg: '#0c1020',
+          floorColor: '#45aaf2',
+          hasVoid: false,
+          platforms: [
+            { x: 100, y: 330, width: 600, height: 14 },
+            { x: 250, y: 240, width: 300, height: 14 },
+          ],
+        },
+        {
+          name: 'Búnker Subterráneo',
+          bg: '#2d3436',
+          floorColor: '#2d3436',
+          hasVoid: false,
+          platforms: [
+            { x: 80, y: 310, width: 200, height: 20 },
+            { x: 520, y: 310, width: 200, height: 20 },
+            { x: 180, y: 200, width: 440, height: 20 },
+          ],
+        },
+        {
+          name: 'Zona Desértica',
+          bg: '#4a3c31',
+          floorColor: '#e1b12c',
+          hasVoid: false,
+          platforms: [
+            { x: 50, y: 300, width: 150, height: 16 },
+            { x: 600, y: 300, width: 150, height: 16 },
+            { x: 240, y: 220, width: 320, height: 16 },
+          ],
+        },
       ];
 
-      // Debe coincidir con las armas definidas en el servidor
+      // Definición de Armas Visuales (Incluidos los 3 Fusiles, Ganchos y variantes de Espadas)
       const WEAPON_VISUALS = {
-        espada: { name: 'Espada', length: 32, attackLength: 50, color: '#f1c40f', width: 5 },
-        lanza: { name: 'Lanza', length: 46, attackLength: 68, color: '#95a5a6', width: 4 },
-        hacha: { name: 'Hacha', length: 26, attackLength: 38, color: '#e74c3c', width: 9 },
-        daga: { name: 'Daga', length: 16, attackLength: 26, color: '#ecf0f1', width: 3 },
-        martillo: { name: 'Martillo', length: 28, attackLength: 40, color: '#9b59b6', width: 11 },
+        espada: { name: 'Espada', length: 32, attackLength: 50, color: '#f1c40f', width: 5, icon: '🗡️' },
+        espadon: { name: 'Espadón', length: 48, attackLength: 68, color: '#f39c12', width: 8, icon: '⚔️' },
+        hoja_rapida: { name: 'Hoja Rápida', length: 24, attackLength: 36, color: '#f1c40f', width: 4, icon: '🗡️' },
+        gancho: { name: 'Gancho de Agarre', length: 20, attackLength: 20, color: '#1abc9c', width: 4, icon: '⚓' },
+        fusil_rapido: { name: 'Fusil Rápido', length: 32, attackLength: 32, color: '#f1c40f', width: 6, icon: '🔫' },
+        fusil_pesado: { name: 'Fusil Pesado', length: 44, attackLength: 44, color: '#e74c3c', width: 9, icon: '💥' },
+        fusil_plasma: { name: 'Fusil Plasma', length: 36, attackLength: 36, color: '#9b59b6', width: 7, icon: '🌌' },
+        lanza: { name: 'Lanza', length: 46, attackLength: 68, color: '#95a5a6', width: 4, icon: '🔱' },
+        hacha: { name: 'Hacha', length: 26, attackLength: 38, color: '#e74c3c', width: 9, icon: '🪓' },
+        daga: { name: 'Daga', length: 16, attackLength: 26, color: '#ecf0f1', width: 3, icon: '🔪' },
+        martillo: { name: 'Martillo', length: 28, attackLength: 40, color: '#9b59b6', width: 11, icon: '🔨' },
       };
-      const PICKUP_LETTER = { espada: 'E', lanza: 'L', hacha: 'H', daga: 'D', martillo: 'M' };
+
+      const PICKUP_LETTER = {
+        espada: 'E', espadon: '⚔️', hoja_rapida: 'R', gancho: '⚓',
+        fusil_rapido: 'F', fusil_pesado: 'P', fusil_plasma: 'PL',
+        lanza: 'L', hacha: 'H', daga: 'D', martillo: 'M'
+      };
 
       socket.on('init', (data) => {
         miId = data.id;
@@ -273,10 +378,12 @@
       socket.on('estadoJuego', (estado) => {
         jugadores = estado.players;
         weaponPickups = estado.weaponPickups;
+        projectiles = estado.projectiles || [];
         mapIndex = estado.mapIndex;
 
+        const actualMap = MAPS[mapIndex] || MAPS[0];
         document.getElementById('map-name').innerText =
-          '🗺️ Mapa: ' + MAPS[mapIndex].name;
+          '🗺️ Mapa: ' + actualMap.name;
 
         for (let role = 1; role <= 4; role++) {
           let p = Object.values(jugadores).find((j) => j.role === role);
@@ -287,7 +394,7 @@
             bar.style.width = p.health + '%';
             score.innerText = p.score;
             const wv = WEAPON_VISUALS[p.weapon] || WEAPON_VISUALS.espada;
-            weaponLabel.innerText = wv.name;
+            weaponLabel.innerText = (wv.icon || '') + ' ' + wv.name;
           } else {
             bar.style.width = '0%';
             weaponLabel.innerText = '';
@@ -325,7 +432,6 @@
         const blocks = document.getElementById('podium-blocks');
         blocks.innerHTML = '';
 
-        // Orden visual: 2do - 1ro - 3ro (como podio real)
         const orden = [1, 0, 2];
         const alturas = [95, 130, 65];
         const medallas = ['🥈', '🥇', '🥉'];
@@ -371,7 +477,7 @@
         overlay.style.display = 'flex';
       }
 
-      // ===== RENDERIZADO =====
+      // ===== RENDERIZADO GENERAL =====
       function draw() {
         const map = MAPS[mapIndex] || MAPS[0];
 
@@ -381,11 +487,13 @@
         ctx.fillStyle = map.bg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Suelo principal
-        ctx.fillStyle = map.floorColor;
-        ctx.fillRect(0, FLOOR_Y, canvas.width, 100);
-        ctx.fillStyle = 'rgba(0,0,0,0.25)';
-        ctx.fillRect(0, FLOOR_Y, canvas.width, 8);
+        // Renderizar Suelo si no es un mapa con Caída al Vacío
+        if (!map.hasVoid) {
+          ctx.fillStyle = map.floorColor;
+          ctx.fillRect(0, FLOOR_Y, canvas.width, 100);
+          ctx.fillStyle = 'rgba(0,0,0,0.25)';
+          ctx.fillRect(0, FLOOR_Y, canvas.width, 8);
+        }
 
         // Plataformas flotantes del mapa
         for (let plat of map.platforms) {
@@ -395,7 +503,7 @@
           ctx.fillRect(plat.x, plat.y, plat.width, 4);
         }
 
-        // Armas en el suelo esperando ser recogidas
+        // Armas en el suelo
         for (let id in weaponPickups) {
           let pk = weaponPickups[id];
           const visual = WEAPON_VISUALS[pk.type] || WEAPON_VISUALS.espada;
@@ -406,7 +514,7 @@
           ctx.strokeStyle = '#fff';
           ctx.lineWidth = 2;
           ctx.stroke();
-          ctx.font = 'bold 13px sans-serif';
+          ctx.font = 'bold 12px sans-serif';
           ctx.fillStyle = '#1e1e24';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -415,20 +523,67 @@
           ctx.textAlign = 'left';
         }
 
+        // Proyectiles (Balas de fusiles o Ganchos disparados en el aire)
+        for (let proj of projectiles) {
+          if (proj.type === 'bullet') {
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, proj.size, 0, Math.PI * 2);
+            ctx.fillStyle = proj.color || '#fff';
+            ctx.shadowColor = proj.color || '#fff';
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.shadowBlur = 0; // Resetear sombra
+          } 
+          else if (proj.type === 'hook') {
+            // Dibujar la soga que une al jugador disparador con el gancho en el aire
+            let owner = jugadores[proj.ownerId];
+            if (owner) {
+              ctx.beginPath();
+              ctx.moveTo(owner.x, owner.y + 4);
+              ctx.lineTo(proj.x, proj.y);
+              ctx.strokeStyle = '#95a5a6';
+              ctx.lineWidth = 2;
+              ctx.setLineDash([4, 4]); // Estilo soga/cuerda discontinua
+              ctx.stroke();
+              ctx.setLineDash([]); // Reset
+            }
+            // Dibujar punta del gancho
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#1abc9c';
+            ctx.fill();
+          }
+        }
+
         // Jugadores
         for (let id in jugadores) {
           let p = jugadores[id];
           if (p.role > 4) continue;
 
+          // Se remueve completamente el renderizado si ha muerto o si cayó al vacío sin emitir texto
           if (p.health <= 0) {
-            ctx.font = '14px sans-serif';
-            ctx.fillStyle = '#fff';
-            ctx.fillText('❌ ELIMINADO', p.x - 40, p.y - 20);
             continue;
+          }
+
+          // Dibujar la soga si el jugador tiene un gancho enganchado/activo (latched)
+          if (p.hook) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y + 4);
+            ctx.lineTo(p.hook.x, p.hook.y);
+            ctx.strokeStyle = '#1abc9c';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+            
+            // Dibujar pinza en la plataforma
+            ctx.beginPath();
+            ctx.arc(p.hook.x, p.hook.y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#16a085';
+            ctx.fill();
           }
 
           const arma = WEAPON_VISUALS[p.weapon] || WEAPON_VISUALS.espada;
 
+          // Dibujar Stickman
           ctx.strokeStyle = p.color;
           ctx.lineWidth = 4;
           ctx.lineCap = 'round';
@@ -456,8 +611,8 @@
           ctx.lineTo(p.x + 6, p.y + 25);
           ctx.stroke();
 
-          // --- ARMA EQUIPADA ---
-          let largoArma = p.isAttacking ? arma.attackLength : arma.length;
+          // --- ARMA EQUIPADA (SOPORTA CUERPOS CORTOS/LARGOS Y BALÍSTICOS) ---
+          let largoArma = p.isAttacking ? (arma.attackLength || arma.length) : arma.length;
           let anguloArma = p.isAttacking ? 0 : 0.4;
 
           let manoX = p.x + 4 * p.facing;
@@ -466,7 +621,8 @@
           let puntaX = manoX + Math.cos(anguloArma) * largoArma * p.facing;
           let puntaY = manoY + Math.sin(anguloArma) * largoArma;
 
-          if (p.isAttacking) {
+          // Animación de barrido para cuerpo a cuerpo
+          if (p.isAttacking && (p.weapon === 'espada' || p.weapon === 'espadon' || p.weapon === 'hoja_rapida' || p.weapon === 'lanza' || p.weapon === 'hacha' || p.weapon === 'daga' || p.weapon === 'martillo')) {
             ctx.beginPath();
             ctx.arc(manoX, manoY, largoArma + 5, -0.2, 0.2);
             ctx.strokeStyle = 'rgba(255, 242, 0, 0.2)';
@@ -474,6 +630,7 @@
             ctx.stroke();
           }
 
+          // Dibujar silueta del arma
           ctx.beginPath();
           ctx.moveTo(manoX, manoY);
           ctx.lineTo(puntaX, puntaY);
@@ -488,7 +645,7 @@
           ctx.lineWidth = 3;
           ctx.stroke();
 
-          // Etiqueta de jugador
+          // Identificador encima de la cabeza
           ctx.font = 'bold 11px sans-serif';
           ctx.fillStyle = p.color;
           ctx.textAlign = 'center';
