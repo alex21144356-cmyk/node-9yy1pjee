@@ -216,13 +216,14 @@
 
       const keys = { left: false, right: false, up: false, attack: false };
 
-      // Debe coincidir visualmente con los mapas definidos en el servidor
+      // ============== LOS 13 MAPAS COMPLETAMENTE SINCRONIZADOS CON EL SERVIDOR ==============
       const MAPS = [
-        { name: 'Arena Clásica', bg: '#2f3542', floorColor: '#4b5563', platforms: [] },
+        { name: 'Arena Clásica', bg: '#2f3542', floorColor: '#4b5563', hasVoid: false, platforms: [] },
         {
           name: 'Templo de Piedra',
           bg: '#2b2320',
           floorColor: '#6b4f3a',
+          hasVoid: false,
           platforms: [
             { x: 140, y: 300, width: 150, height: 16 },
             { x: 510, y: 300, width: 150, height: 16 },
@@ -232,6 +233,7 @@
           name: 'Plataformas Flotantes',
           bg: '#18222e',
           floorColor: '#34495e',
+          hasVoid: false,
           platforms: [
             { x: 70, y: 320, width: 120, height: 16 },
             { x: 340, y: 250, width: 120, height: 16 },
@@ -242,286 +244,90 @@
           name: 'Volcán',
           bg: '#2e1512',
           floorColor: '#c0392b',
+          hasVoid: false,
           platforms: [{ x: 250, y: 310, width: 300, height: 16 }],
         },
         {
           name: 'Hielo Eterno',
           bg: '#152530',
           floorColor: '#85c1e9',
+          hasVoid: false,
           platforms: [
             { x: 90, y: 280, width: 100, height: 16 },
             { x: 610, y: 280, width: 100, height: 16 },
             { x: 350, y: 340, width: 100, height: 16 },
           ],
         },
-      ];
-
-      // Debe coincidir con las armas definidas en el servidor
-      const WEAPON_VISUALS = {
-        espada: { name: 'Espada', length: 32, attackLength: 50, color: '#f1c40f', width: 5 },
-        lanza: { name: 'Lanza', length: 46, attackLength: 68, color: '#95a5a6', width: 4 },
-        hacha: { name: 'Hacha', length: 26, attackLength: 38, color: '#e74c3c', width: 9 },
-        daga: { name: 'Daga', length: 16, attackLength: 26, color: '#ecf0f1', width: 3 },
-        martillo: { name: 'Martillo', length: 28, attackLength: 40, color: '#9b59b6', width: 11 },
-        fusil: { name: 'Fusil', length: 40, attackLength: 100, color: '#1abc9c', width: 6 }, // <--- VISUALIZACIÓN DEL FUSIL AÑADIDA
-      };
-      const PICKUP_LETTER = { espada: 'E', lanza: 'L', hacha: 'H', daga: 'D', martillo: 'M', fusil: 'F' }; // <--- SE RECONOCE LA LETRA "F"
-
-      socket.on('init', (data) => {
-        miId = data.id;
-      });
-
-      socket.on('estadoJuego', (estado) => {
-        jugadores = estado.players;
-        weaponPickups = estado.weaponPickups;
-        mapIndex = estado.mapIndex;
-
-        document.getElementById('map-name').innerText =
-          '🗺️ Mapa: ' + MAPS[mapIndex].name;
-
-        for (let role = 1; role <= 4; role++) {
-          let p = Object.values(jugadores).find((j) => j.role === role);
-          let bar = document.getElementById('p' + role + '-bar');
-          let score = document.getElementById('p' + role + '-score');
-          let weaponLabel = document.getElementById('p' + role + '-weapon');
-          if (p) {
-            bar.style.width = p.health + '%';
-            score.innerText = p.score;
-            const wv = WEAPON_VISUALS[p.weapon] || WEAPON_VISUALS.espada;
-            weaponLabel.innerText = wv.name;
-          } else {
-            bar.style.width = '0%';
-            weaponLabel.innerText = '';
-          }
-        }
-
-        const miUsuario = jugadores[miId];
-        const rolTag = document.getElementById('rol-tag');
-        if (miUsuario) {
-          if (miUsuario.role >= 1 && miUsuario.role <= 4) {
-            rolTag.innerText =
-              'ESTÁS CONTROLANDO AL JUGADOR ' +
-              miUsuario.role +
-              ' - CONTROLES: WASD o FLECHAS + ESPACIO';
-            rolTag.style.color = miUsuario.color;
-          } else {
-            rolTag.innerText =
-              'SALA LLENA (4/4): ESTÁS EN MODO ESPECTADOR (Espera a que uno salga)';
-            rolTag.style.color = '#f1c40f';
-          }
-        }
-      });
-
-      // ===== FIN DE PARTIDA: MOSTRAR PODIO =====
-      socket.on('finDePartida', (data) => {
-        mostrarPodio(data.podium);
-      });
-
-      socket.on('nuevaPartida', () => {
-        document.getElementById('podium-overlay').style.display = 'none';
-      });
-
-      function mostrarPodio(podium) {
-        const overlay = document.getElementById('podium-overlay');
-        const blocks = document.getElementById('podium-blocks');
-        blocks.innerHTML = '';
-
-        const orden = [1, 0, 2];
-        const alturas = [95, 130, 65];
-        const medallas = ['🥈', '🥇', '🥉'];
-
-        orden.forEach((idxPodio, posVisual) => {
-          const jugador = podium[idxPodio];
-          const div = document.createElement('div');
-          div.className = 'podium-block';
-
-          if (jugador) {
-            div.innerHTML =
-              '<div class="podium-label" style="color:' +
-              jugador.color +
-              '">' +
-              medallas[posVisual] +
-              ' P' +
-              jugador.role +
-              '</div>' +
-              '<div class="podium-score">' +
-              jugador.score +
-              ' puntos</div>' +
-              '<div class="podium-pillar" style="height:' +
-              alturas[posVisual] +
-              'px; background:' +
-              jugador.color +
-              ';">' +
-              (idxPodio + 1) +
-              '</div>';
-          } else {
-            div.innerHTML =
-              '<div class="podium-label" style="color:#666">--</div>' +
-              '<div class="podium-score">&nbsp;</div>' +
-              '<div class="podium-pillar" style="height:' +
-              alturas[posVisual] +
-              'px; background:#444;">' +
-              (idxPodio + 1) +
-              '</div>';
-          }
-
-          blocks.appendChild(div);
-        });
-
-        overlay.style.display = 'flex';
-      }
-
-      // ===== RENDERIZADO =====
-      function draw() {
-        const map = MAPS[mapIndex] || MAPS[0];
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Fondo del mapa actual
-        ctx.fillStyle = map.bg;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Suelo principal
-        ctx.fillStyle = map.floorColor;
-        ctx.fillRect(0, FLOOR_Y, canvas.width, 100);
-        ctx.fillStyle = 'rgba(0,0,0,0.25)';
-        ctx.fillRect(0, FLOOR_Y, canvas.width, 8);
-
-        // Plataformas flotantes del mapa
-        for (let plat of map.platforms) {
-          ctx.fillStyle = map.floorColor;
-          ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
-          ctx.fillStyle = 'rgba(0,0,0,0.25)';
-          ctx.fillRect(plat.x, plat.y, plat.width, 4);
-        }
-
-        // Armas en el suelo esperando ser recogidas
-        for (let id in weaponPickups) {
-          let pk = weaponPickups[id];
-          const visual = WEAPON_VISUALS[pk.type] || WEAPON_VISUALS.espada;
-          ctx.beginPath();
-          ctx.arc(pk.x, pk.y, 14, 0, Math.PI * 2);
-          ctx.fillStyle = visual.color;
-          ctx.fill();
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          ctx.font = 'bold 13px sans-serif';
-          ctx.fillStyle = '#1e1e24';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(PICKUP_LETTER[pk.type] || '?', pk.x, pk.y + 1);
-          ctx.textBaseline = 'alphabetic';
-          ctx.textAlign = 'left';
-        }
-
-        // Jugadores
-        for (let id in jugadores) {
-          let p = jugadores[id];
-          if (p.role > 4) continue;
-
-          if (p.health <= 0) {
-            ctx.font = '14px sans-serif';
-            ctx.fillStyle = '#fff';
-            ctx.fillText('❌ ELIMINADO', p.x - 40, p.y - 20);
-            continue;
-          }
-
-          const arma = WEAPON_VISUALS[p.weapon] || WEAPON_VISUALS.espada;
-
-          ctx.strokeStyle = p.color;
-          ctx.lineWidth = 4;
-          ctx.lineCap = 'round';
-
-          ctx.beginPath();
-          ctx.arc(p.x, p.y - 12, 8, 0, Math.PI * 2);
-          ctx.fillStyle = p.color;
-          ctx.fill();
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-
-          ctx.strokeStyle = p.color;
-          ctx.lineWidth = 4;
-
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y - 4);
-          ctx.lineTo(p.x, p.y + 12);
-          ctx.stroke();
-
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y + 12);
-          ctx.lineTo(p.x - 6, p.y + 25);
-          ctx.moveTo(p.x, p.y + 12);
-          ctx.lineTo(p.x + 6, p.y + 25);
-          ctx.stroke();
-
-          // --- ARMA EQUIPADA ---
-          let largoArma = p.isAttacking ? arma.attackLength : arma.length;
-          let anguloArma = p.isAttacking ? 0 : 0.4;
-
-          let manoX = p.x + 4 * p.facing;
-          let manoY = p.y + 4;
-
-          let puntaX = manoX + Math.cos(anguloArma) * largoArma * p.facing;
-          let puntaY = manoY + Math.sin(anguloArma) * largoArma;
-
-          if (p.isAttacking) {
-            ctx.beginPath();
-            ctx.arc(manoX, manoY, largoArma + 5, -0.2, 0.2);
-            ctx.strokeStyle = 'rgba(255, 242, 0, 0.2)';
-            ctx.lineWidth = 8;
-            ctx.stroke();
-          }
-
-          ctx.beginPath();
-          ctx.moveTo(manoX, manoY);
-          ctx.lineTo(puntaX, puntaY);
-          ctx.strokeStyle = arma.color;
-          ctx.lineWidth = arma.width;
-          ctx.stroke();
-
-          ctx.beginPath();
-          ctx.moveTo(manoX, manoY - 4);
-          ctx.lineTo(manoX, manoY + 4);
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 3;
-          ctx.stroke();
-
-          // Etiqueta de jugador
-          ctx.font = 'bold 11px sans-serif';
-          ctx.fillStyle = p.color;
-          ctx.textAlign = 'center';
-          ctx.fillText('P' + p.role, p.x, p.y - 26);
-          ctx.textAlign = 'left';
-        }
-
-        requestAnimationFrame(draw);
-      }
-
-      draw();
-
-      function enviarInputs() {
-        socket.emit('input', keys);
-      }
-
-      window.addEventListener('keydown', (e) => {
-        let key = e.key.toLowerCase();
-        if (key === 'arrowleft' || key === 'a') keys.left = true;
-        if (key === 'arrowright' || key === 'd') keys.right = true;
-        if (key === 'arrowup' || key === 'w') keys.up = true;
-        if (e.key === ' ' || key === 'j') keys.attack = true;
-        enviarInputs();
-      });
-
-      window.addEventListener('keyup', (e) => {
-        let key = e.key.toLowerCase();
-        if (key === 'arrowleft' || key === 'a') keys.left = false;
-        if (key === 'arrowright' || key === 'd') keys.right = false;
-        if (key === 'arrowup' || key === 'w') keys.up = false;
-        if (e.key === ' ' || key === 'j') keys.attack = false;
-        enviarInputs();
-      });
-    </script>
-  </body>
-</html>
+        {
+          name: 'Abismo del Vacío (Peligro de Caída)',
+          bg: '#0f172a',
+          floorColor: '#334155',
+          hasVoid: true,
+          platforms: [
+            { x: 50, y: 350, width: 220, height: 20 },
+            { x: 530, y: 350, width: 220, height: 20 },
+            { x: 300, y: 230, width: 200, height: 20 },
+          ],
+        },
+        {
+          name: 'Estructuras Elevadas (Peligro de Caída)',
+          bg: '#1e1b4b',
+          floorColor: '#4338ca',
+          hasVoid: true,
+          platforms: [
+            { x: 150, y: 380, width: 120, height: 20 },
+            { x: 530, y: 380, width: 120, height: 20 },
+            { x: 300, y: 290, width: 200, height: 20 },
+            { x: 100, y: 190, width: 150, height: 20 },
+            { x: 550, y: 190, width: 150, height: 20 },
+          ],
+        },
+        {
+          name: 'Puentes Suspendidos (Peligro de Caída)',
+          bg: '#1c1917',
+          floorColor: '#78716c',
+          hasVoid: true,
+          platforms: [
+            { x: 30, y: 390, width: 160, height: 15 },
+            { x: 610, y: 390, width: 160, height: 15 },
+            { x: 220, y: 300, width: 360, height: 15 },
+            { x: 340, y: 190, width: 120, height: 15 },
+          ],
+        },
+        {
+          name: 'Ruinas Metálicas',
+          bg: '#202938',
+          floorColor: '#4b5563',
+          hasVoid: false,
+          platforms: [
+            { x: 200, y: 320, width: 400, height: 16 },
+            { x: 300, y: 220, width: 200, height: 16 },
+          ],
+        },
+        {
+          name: 'Fábrica Tóxica',
+          bg: '#064e3b',
+          floorColor: '#10b981',
+          hasVoid: false,
+          platforms: [
+            { x: 50, y: 280, width: 180, height: 16 },
+            { x: 570, y: 280, width: 180, height: 16 },
+            { x: 270, y: 200, width: 260, height: 16 },
+          ],
+        },
+        {
+          name: 'Laboratorio Espacial',
+          bg: '#0f172a',
+          floorColor: '#38bdf8',
+          hasVoid: false,
+          platforms: [
+            { x: 100, y: 330, width: 600, height: 14 },
+            { x: 250, y: 240, width: 300, height: 14 },
+          ],
+        },
+        {
+          name: 'Búnker Subterráneo',
+          bg: '#18181b',
+          floorColor: '#52525b',
+          hasVoid: false,
+          platforms:
