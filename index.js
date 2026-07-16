@@ -35,6 +35,7 @@ const WEAPONS = {
   hacha: { name: 'Hacha', range: 35, damage: 20, knockback: 22, attackDuration: 18 },
   daga: { name: 'Daga', range: 25, damage: 6, knockback: 6, attackDuration: 6 },
   martillo: { name: 'Martillo', range: 40, damage: 15, knockback: 30, attackDuration: 22 },
+  fusil: { name: 'Fusil', range: 120, damage: 14, knockback: 18, attackDuration: 12 }, // <--- NUEVA ARMA AÑADIDA
 };
 const WEAPON_KEYS = Object.keys(WEAPONS);
 let pickupIdCounter = 1;
@@ -42,32 +43,26 @@ let pickupIdCounter = 1;
 function spawnWeaponPickup() {
   const id = 'pk' + pickupIdCounter++;
   const type = WEAPON_KEYS[Math.floor(Math.random() * WEAPON_KEYS.length)];
-  const map = MAPS[currentMapIndex];
-
-  let rx = 60 + Math.random() * (CANVAS_WIDTH - 120);
-  let ry = FLOOR_Y - 14;
-
-  // Si el mapa tiene plataformas, hay probabilidad de que aparezca sobre una de ellas
-  if (map.platforms && map.platforms.length > 0 && Math.random() < 0.6) {
-    const plat = map.platforms[Math.floor(Math.random() * map.platforms.length)];
-    rx = plat.x + Math.random() * plat.width;
-    ry = plat.y - 14;
-  }
-
   weaponPickups[id] = {
     id,
     type,
-    x: rx,
-    y: ry,
+    x: 60 + Math.random() * (CANVAS_WIDTH - 120),
+    y: FLOOR_Y - 14,
   };
 }
 
-// ============== MAPAS (Sincronizados con el Cliente) ==============
+// ============== MAPAS ==============
 const MAPS = [
-  { name: 'Arena Clásica', hasVoid: false, platforms: [] },
+  {
+    name: 'Arena Clásica',
+    bg: '#2f3542',
+    floorColor: '#4b5563',
+    platforms: [],
+  },
   {
     name: 'Templo de Piedra',
-    hasVoid: false,
+    bg: '#2b2320',
+    floorColor: '#6b4f3a',
     platforms: [
       { x: 140, y: 300, width: 150, height: 16 },
       { x: 510, y: 300, width: 150, height: 16 },
@@ -75,7 +70,8 @@ const MAPS = [
   },
   {
     name: 'Plataformas Flotantes',
-    hasVoid: false,
+    bg: '#18222e',
+    floorColor: '#34495e',
     platforms: [
       { x: 70, y: 320, width: 120, height: 16 },
       { x: 340, y: 250, width: 120, height: 16 },
@@ -84,89 +80,18 @@ const MAPS = [
   },
   {
     name: 'Volcán',
-    hasVoid: false,
+    bg: '#2e1512',
+    floorColor: '#c0392b',
     platforms: [{ x: 250, y: 310, width: 300, height: 16 }],
   },
   {
     name: 'Hielo Eterno',
-    hasVoid: false,
+    bg: '#152530',
+    floorColor: '#85c1e9',
     platforms: [
       { x: 90, y: 280, width: 100, height: 16 },
       { x: 610, y: 280, width: 100, height: 16 },
       { x: 350, y: 340, width: 100, height: 16 },
-    ],
-  },
-  {
-    name: 'Abismo del Vacío (Peligro de Caída)',
-    hasVoid: true,
-    platforms: [
-      { x: 50, y: 350, width: 220, height: 20 },
-      { x: 530, y: 350, width: 220, height: 20 },
-      { x: 300, y: 230, width: 200, height: 20 },
-    ],
-  },
-  {
-    name: 'Estructuras Elevadas (Peligro de Caída)',
-    hasVoid: true,
-    platforms: [
-      { x: 150, y: 380, width: 120, height: 20 },
-      { x: 530, y: 380, width: 120, height: 20 },
-      { x: 300, y: 290, width: 200, height: 20 },
-      { x: 100, y: 190, width: 150, height: 20 },
-      { x: 550, y: 190, width: 150, height: 20 },
-    ],
-  },
-  {
-    name: 'Puentes Suspendidos (Peligro de Caída)',
-    hasVoid: true,
-    platforms: [
-      { x: 30, y: 390, width: 160, height: 15 },
-      { x: 610, y: 390, width: 160, height: 15 },
-      { x: 220, y: 300, width: 360, height: 15 },
-      { x: 340, y: 190, width: 120, height: 15 },
-    ],
-  },
-  {
-    name: 'Ruinas Metálicas',
-    hasVoid: false,
-    platforms: [
-      { x: 200, y: 320, width: 400, height: 16 },
-      { x: 300, y: 220, width: 200, height: 16 },
-    ],
-  },
-  {
-    name: 'Fábrica Tóxica',
-    hasVoid: false,
-    platforms: [
-      { x: 50, y: 280, width: 180, height: 16 },
-      { x: 570, y: 280, width: 180, height: 16 },
-      { x: 270, y: 200, width: 260, height: 16 },
-    ],
-  },
-  {
-    name: 'Laboratorio Espacial',
-    hasVoid: false,
-    platforms: [
-      { x: 100, y: 330, width: 600, height: 14 },
-      { x: 250, y: 240, width: 300, height: 14 },
-    ],
-  },
-  {
-    name: 'Búnker Subterráneo',
-    hasVoid: false,
-    platforms: [
-      { x: 80, y: 310, width: 200, height: 20 },
-      { x: 520, y: 310, width: 200, height: 20 },
-      { x: 180, y: 200, width: 440, height: 20 },
-    ],
-  },
-  {
-    name: 'Zona Desértica',
-    hasVoid: false,
-    platforms: [
-      { x: 50, y: 300, width: 150, height: 16 },
-      { x: 600, y: 300, width: 150, height: 16 },
-      { x: 240, y: 220, width: 320, height: 16 },
     ],
   },
 ];
@@ -232,39 +157,6 @@ function empaquetarEstado() {
   };
 }
 
-// ============== LÓGICA DE NUEVA RONDA (CAMBIA EL MAPA) ==============
-function iniciarNuevaRonda() {
-  if (!matchActive) return;
-
-  // Cambiar a un mapa aleatorio diferente al actual
-  let nuevoMapaIndex = currentMapIndex;
-  while (nuevoMapaIndex === currentMapIndex && MAPS.length > 1) {
-    nuevoMapaIndex = Math.floor(Math.random() * MAPS.length);
-  }
-  currentMapIndex = nuevoMapaIndex;
-
-  // Limpiar armas del suelo
-  weaponPickups = {};
-
-  // Restablecer parámetros de todos los jugadores activos
-  for (let id in players) {
-    let p = players[id];
-    if (p.role <= MAX_PLAYERS) {
-      const c = ROLE_CONFIG[p.role];
-      p.health = 100;
-      p.x = c ? c.x : 400;
-      p.y = 150;
-      p.vx = 0;
-      p.vy = 0;
-      p.weapon = 'espada';
-      p.isAttacking = false;
-      p.attackTimer = 0;
-    }
-  }
-
-  io.emit('estadoJuego', empaquetarEstado());
-}
-
 // ============== COMBATE ==============
 function verificarGolpe(attackerId) {
   let attacker = players[attackerId];
@@ -299,9 +191,16 @@ function verificarGolpe(attackerId) {
           return;
         }
 
-        // Cada vez que un jugador muere, se cambia de mapa y se inicia nueva ronda tras 1.5s
         setTimeout(() => {
-          iniciarNuevaRonda();
+          if (players[targetId]) {
+            const c = ROLE_CONFIG[players[targetId].role];
+            players[targetId].health = 100;
+            players[targetId].x = c ? c.x : 400;
+            players[targetId].y = 150;
+            players[targetId].vx = 0;
+            players[targetId].vy = 0;
+            players[targetId].weapon = 'espada';
+          }
         }, 1500);
       }
     }
@@ -405,52 +304,30 @@ setInterval(() => {
 
     // Colisión con plataformas flotantes del mapa actual
     p.enPlataforma = false;
-    if (map.platforms) {
-      for (let plat of map.platforms) {
-        const dentroX =
-          p.x + PLAYER_RADIUS * 0.5 > plat.x &&
-          p.x - PLAYER_RADIUS * 0.5 < plat.x + plat.width;
-        const piesY = p.y + PLAYER_RADIUS;
-        if (
-          dentroX &&
-          p.vy >= 0 &&
-          piesY >= plat.y &&
-          piesY <= plat.y + Math.max(p.vy, 8)
-        ) {
-          p.y = plat.y - PLAYER_RADIUS;
-          p.vy = 0;
-          p.enPlataforma = true;
-        }
-      }
-    }
-
-    // Colisión con el suelo principal (solo si el mapa no tiene caída al vacío)
-    if (!map.hasVoid) {
-      if (p.y >= FLOOR_Y - PLAYER_RADIUS) {
-        p.y = FLOOR_Y - PLAYER_RADIUS;
+    for (let plat of map.platforms) {
+      const dentroX =
+        p.x + PLAYER_RADIUS * 0.5 > plat.x &&
+        p.x - PLAYER_RADIUS * 0.5 < plat.x + plat.width;
+      const piesY = p.y + PLAYER_RADIUS;
+      if (
+        dentroX &&
+        p.vy >= 0 &&
+        piesY >= plat.y &&
+        piesY <= plat.y + Math.max(p.vy, 8)
+      ) {
+        p.y = plat.y - PLAYER_RADIUS;
         p.vy = 0;
-      }
-    } else {
-      // Caída al vacío (Soporte para mapas con abismos)
-      if (p.y > CANVAS_HEIGHT + 100 && p.health > 0) {
-        p.health = 0;
-        let attacker = Object.values(players).find(
-          (att) => att.id !== p.id && att.role <= MAX_PLAYERS && att.health > 0
-        );
-        if (attacker) {
-          attacker.score += 1;
-          if (attacker.score >= PUNTOS_PARA_GANAR) {
-            terminarPartida();
-            continue;
-          }
-        }
-        setTimeout(() => {
-          iniciarNuevaRonda();
-        }, 1500);
+        p.enPlataforma = true;
       }
     }
 
-    // Límites laterales de la arena
+    // Colisión con el suelo principal
+    if (p.y >= FLOOR_Y - PLAYER_RADIUS) {
+      p.y = FLOOR_Y - PLAYER_RADIUS;
+      p.vy = 0;
+    }
+
+    // Límites de la arena
     if (p.x < PLAYER_RADIUS) {
       p.x = PLAYER_RADIUS;
       p.vx *= -0.5;
