@@ -156,7 +156,7 @@
         <div class="health-bar-container">
           <div id="p1-bar" class="health-bar" style="background:#ff4757;"></div>
         </div>
-        <div id="p1-weapon" class="weapon-line">Cargando...</div>
+        <div id="p1-weapon" class="weapon-line">Espada</div>
       </div>
       <div class="player-stats">
         <div id="p2-name" class="name-line" style="color: #2ed573">
@@ -165,7 +165,7 @@
         <div class="health-bar-container">
           <div id="p2-bar" class="health-bar" style="background:#2ed573;"></div>
         </div>
-        <div id="p2-weapon" class="weapon-line">Cargando...</div>
+        <div id="p2-weapon" class="weapon-line">Espada</div>
       </div>
       <div class="player-stats">
         <div id="p3-name" class="name-line" style="color: #1e90ff">
@@ -174,7 +174,7 @@
         <div class="health-bar-container">
           <div id="p3-bar" class="health-bar" style="background:#1e90ff;"></div>
         </div>
-        <div id="p3-weapon" class="weapon-line">Cargando...</div>
+        <div id="p3-weapon" class="weapon-line">Espada</div>
       </div>
       <div class="player-stats">
         <div id="p4-name" class="name-line" style="color: #9b59b6">
@@ -183,7 +183,7 @@
         <div class="health-bar-container">
           <div id="p4-bar" class="health-bar" style="background:#9b59b6;"></div>
         </div>
-        <div id="p4-weapon" class="weapon-line">Cargando...</div>
+        <div id="p4-weapon" class="weapon-line">Espada</div>
       </div>
     </div>
 
@@ -201,9 +201,9 @@
 
     <div id="rol-tag">Identificando rol en la arena...</div>
 
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-      const socket = io(window.location.origin);
+      const socket = io();
       const canvas = document.getElementById('gameCanvas');
       const ctx = canvas.getContext('2d');
       const FLOOR_Y = 400;
@@ -212,18 +212,17 @@
       let miId = null;
       let jugadores = {};
       let weaponPickups = {};
-      let projectiles = [];
       let mapIndex = 0;
 
       const keys = { left: false, right: false, up: false, attack: false };
 
+      // Debe coincidir visualmente con los mapas definidos en el servidor
       const MAPS = [
-        { name: 'Arena Clásica', bg: '#2f3542', floorColor: '#4b5563', hasVoid: false, platforms: [] },
+        { name: 'Arena Clásica', bg: '#2f3542', floorColor: '#4b5563', platforms: [] },
         {
           name: 'Templo de Piedra',
           bg: '#2b2320',
           floorColor: '#6b4f3a',
-          hasVoid: false,
           platforms: [
             { x: 140, y: 300, width: 150, height: 16 },
             { x: 510, y: 300, width: 150, height: 16 },
@@ -233,7 +232,6 @@
           name: 'Plataformas Flotantes',
           bg: '#18222e',
           floorColor: '#34495e',
-          hasVoid: false,
           platforms: [
             { x: 70, y: 320, width: 120, height: 16 },
             { x: 340, y: 250, width: 120, height: 16 },
@@ -244,130 +242,30 @@
           name: 'Volcán',
           bg: '#2e1512',
           floorColor: '#c0392b',
-          hasVoid: false,
           platforms: [{ x: 250, y: 310, width: 300, height: 16 }],
         },
         {
           name: 'Hielo Eterno',
           bg: '#152530',
           floorColor: '#85c1e9',
-          hasVoid: false,
           platforms: [
             { x: 90, y: 280, width: 100, height: 16 },
             { x: 610, y: 280, width: 100, height: 16 },
             { x: 350, y: 340, width: 100, height: 16 },
           ],
         },
-        {
-          name: 'Abismo del Vacío (Peligro de Caída)',
-          bg: '#0f0f14',
-          floorColor: '#1e272e',
-          hasVoid: true,
-          platforms: [
-            { x: 50, y: 350, width: 220, height: 20 },
-            { x: 530, y: 350, width: 220, height: 20 },
-            { x: 300, y: 230, width: 200, height: 20 },
-          ],
-        },
-        {
-          name: 'Estructuras Elevadas (Peligro de Caída)',
-          bg: '#2c3e50',
-          floorColor: '#7f8c8d',
-          hasVoid: true,
-          platforms: [
-            { x: 150, y: 380, width: 120, height: 20 },
-            { x: 530, y: 380, width: 120, height: 20 },
-            { x: 300, y: 290, width: 200, height: 20 },
-            { x: 100, y: 190, width: 150, height: 20 },
-            { x: 550, y: 190, width: 150, height: 20 },
-          ],
-        },
-        {
-          name: 'Puentes Suspendidos (Peligro de Caída)',
-          bg: '#1e1e24',
-          floorColor: '#d35400',
-          hasVoid: true,
-          platforms: [
-            { x: 30, y: 390, width: 160, height: 15 },
-            { x: 610, y: 390, width: 160, height: 15 },
-            { x: 220, y: 300, width: 360, height: 15 },
-            { x: 340, y: 190, width: 120, height: 15 },
-          ],
-        },
-        {
-          name: 'Ruinas Metálicas',
-          bg: '#1a1d20',
-          floorColor: '#57606f',
-          hasVoid: false,
-          platforms: [
-            { x: 200, y: 320, width: 400, height: 16 },
-            { x: 300, y: 220, width: 200, height: 16 },
-          ],
-        },
-        {
-          name: 'Fábrica Tóxica',
-          bg: '#1b2a1a',
-          floorColor: '#2ed573',
-          hasVoid: false,
-          platforms: [
-            { x: 50, y: 280, width: 180, height: 16 },
-            { x: 570, y: 280, width: 180, height: 16 },
-            { x: 270, y: 200, width: 260, height: 16 },
-          ],
-        },
-        {
-          name: 'Laboratorio Espacial',
-          bg: '#0c1020',
-          floorColor: '#45aaf2',
-          hasVoid: false,
-          platforms: [
-            { x: 100, y: 330, width: 600, height: 14 },
-            { x: 250, y: 240, width: 300, height: 14 },
-          ],
-        },
-        {
-          name: 'Búnker Subterráneo',
-          bg: '#2d3436',
-          floorColor: '#2d3436',
-          hasVoid: false,
-          platforms: [
-            { x: 80, y: 310, width: 200, height: 20 },
-            { x: 520, y: 310, width: 200, height: 20 },
-            { x: 180, y: 200, width: 440, height: 20 },
-          ],
-        },
-        {
-          name: 'Zona Desértica',
-          bg: '#4a3c31',
-          floorColor: '#e1b12c',
-          hasVoid: false,
-          platforms: [
-            { x: 50, y: 300, width: 150, height: 16 },
-            { x: 600, y: 300, width: 150, height: 16 },
-            { x: 240, y: 220, width: 320, height: 16 },
-          ],
-        },
       ];
 
+      // Debe coincidir con las armas definidas en el servidor
       const WEAPON_VISUALS = {
-        espada: { name: 'Espada', length: 35, color: '#ecf0f1', icon: '🗡️', type: 'melee_slash' },
-        espadon: { name: 'Espadón', length: 50, color: '#95a5a6', icon: '⚔️', type: 'melee_slash' },
-        hoja_rapida: { name: 'Hoja Rápida', length: 30, color: '#f1c40f', icon: '🗡️', type: 'melee_slash' },
-        gancho: { name: 'Gancho de Agarre', length: 28, color: '#1abc9c', icon: '⚓', type: 'grapple' },
-        fusil_rapido: { name: 'Fusil Rápido', length: 30, color: '#f1c40f', icon: '🔫', type: 'ranged' },
-        fusil_pesado: { name: 'Fusil Pesado', length: 42, color: '#e74c3c', icon: '💥', type: 'ranged' },
-        fusil_plasma: { name: 'Fusil Plasma', length: 34, color: '#9b59b6', icon: '🌌', type: 'ranged' },
-        lanza: { name: 'Lanza', length: 65, color: '#bdc3c7', icon: '🔱', type: 'melee_thrust' },
-        hacha: { name: 'Hacha', length: 32, color: '#e74c3c', icon: '🪓', type: 'melee_heavy' },
-        daga: { name: 'Daga', length: 20, color: '#ecf0f1', icon: '🔪', type: 'melee_thrust' },
-        martillo: { name: 'Martillo', length: 35, color: '#34495e', icon: '🔨', type: 'melee_heavy' },
+        espada: { name: 'Espada', length: 32, attackLength: 50, color: '#f1c40f', width: 5 },
+        lanza: { name: 'Lanza', length: 46, attackLength: 68, color: '#95a5a6', width: 4 },
+        hacha: { name: 'Hacha', length: 26, attackLength: 38, color: '#e74c3c', width: 9 },
+        daga: { name: 'Daga', length: 16, attackLength: 26, color: '#ecf0f1', width: 3 },
+        martillo: { name: 'Martillo', length: 28, attackLength: 40, color: '#9b59b6', width: 11 },
+        fusil: { name: 'Fusil', length: 40, attackLength: 100, color: '#1abc9c', width: 6 }, // <--- VISUALIZACIÓN DEL FUSIL AÑADIDA
       };
-
-      const PICKUP_LETTER = {
-        espada: 'E', espadon: '⚔️', hoja_rapida: 'R', gancho: '⚓',
-        fusil_rapido: 'F', fusil_pesado: 'P', fusil_plasma: 'PL',
-        lanza: 'L', hacha: 'H', daga: 'D', martillo: 'M'
-      };
+      const PICKUP_LETTER = { espada: 'E', lanza: 'L', hacha: 'H', daga: 'D', martillo: 'M', fusil: 'F' }; // <--- SE RECONOCE LA LETRA "F"
 
       socket.on('init', (data) => {
         miId = data.id;
@@ -376,12 +274,10 @@
       socket.on('estadoJuego', (estado) => {
         jugadores = estado.players;
         weaponPickups = estado.weaponPickups;
-        projectiles = estado.projectiles || [];
         mapIndex = estado.mapIndex;
 
-        const actualMap = MAPS[mapIndex] || MAPS[0];
         document.getElementById('map-name').innerText =
-          '🗺️ Mapa: ' + actualMap.name;
+          '🗺️ Mapa: ' + MAPS[mapIndex].name;
 
         for (let role = 1; role <= 4; role++) {
           let p = Object.values(jugadores).find((j) => j.role === role);
@@ -392,7 +288,7 @@
             bar.style.width = p.health + '%';
             score.innerText = p.score;
             const wv = WEAPON_VISUALS[p.weapon] || WEAPON_VISUALS.espada;
-            weaponLabel.innerText = (wv.icon || '') + ' ' + wv.name;
+            weaponLabel.innerText = wv.name;
           } else {
             bar.style.width = '0%';
             weaponLabel.innerText = '';
@@ -416,6 +312,7 @@
         }
       });
 
+      // ===== FIN DE PARTIDA: MOSTRAR PODIO =====
       socket.on('finDePartida', (data) => {
         mostrarPodio(data.podium);
       });
@@ -474,21 +371,23 @@
         overlay.style.display = 'flex';
       }
 
+      // ===== RENDERIZADO =====
       function draw() {
         const map = MAPS[mapIndex] || MAPS[0];
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        // Fondo del mapa actual
         ctx.fillStyle = map.bg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        if (!map.hasVoid) {
-          ctx.fillStyle = map.floorColor;
-          ctx.fillRect(0, FLOOR_Y, canvas.width, 100);
-          ctx.fillStyle = 'rgba(0,0,0,0.25)';
-          ctx.fillRect(0, FLOOR_Y, canvas.width, 8);
-        }
+        // Suelo principal
+        ctx.fillStyle = map.floorColor;
+        ctx.fillRect(0, FLOOR_Y, canvas.width, 100);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillRect(0, FLOOR_Y, canvas.width, 8);
 
+        // Plataformas flotantes del mapa
         for (let plat of map.platforms) {
           ctx.fillStyle = map.floorColor;
           ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
@@ -496,6 +395,7 @@
           ctx.fillRect(plat.x, plat.y, plat.width, 4);
         }
 
+        // Armas en el suelo esperando ser recogidas
         for (let id in weaponPickups) {
           let pk = weaponPickups[id];
           const visual = WEAPON_VISUALS[pk.type] || WEAPON_VISUALS.espada;
@@ -506,7 +406,7 @@
           ctx.strokeStyle = '#fff';
           ctx.lineWidth = 2;
           ctx.stroke();
-          ctx.font = 'bold 12px sans-serif';
+          ctx.font = 'bold 13px sans-serif';
           ctx.fillStyle = '#1e1e24';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -515,61 +415,20 @@
           ctx.textAlign = 'left';
         }
 
-        for (let proj of projectiles) {
-          if (proj.type === 'bullet') {
-            ctx.beginPath();
-            ctx.arc(proj.x, proj.y, proj.size, 0, Math.PI * 2);
-            ctx.fillStyle = proj.color || '#fff';
-            ctx.shadowColor = proj.color || '#fff';
-            ctx.shadowBlur = 8;
-            ctx.fill();
-            ctx.shadowBlur = 0; 
-          } 
-          else if (proj.type === 'hook') {
-            let owner = jugadores[proj.ownerId];
-            if (owner) {
-              ctx.beginPath();
-              ctx.moveTo(owner.x, owner.y + 4);
-              ctx.lineTo(proj.x, proj.y);
-              ctx.strokeStyle = '#95a5a6';
-              ctx.lineWidth = 2;
-              ctx.setLineDash([4, 4]); 
-              ctx.stroke();
-              ctx.setLineDash([]); 
-            }
-            ctx.beginPath();
-            ctx.arc(proj.x, proj.y, 6, 0, Math.PI * 2);
-            ctx.fillStyle = '#1abc9c';
-            ctx.fill();
-          }
-        }
-
         // Jugadores
         for (let id in jugadores) {
           let p = jugadores[id];
           if (p.role > 4) continue;
 
           if (p.health <= 0) {
+            ctx.font = '14px sans-serif';
+            ctx.fillStyle = '#fff';
+            ctx.fillText('❌ ELIMINADO', p.x - 40, p.y - 20);
             continue;
-          }
-
-          if (p.hook) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y + 4);
-            ctx.lineTo(p.hook.x, p.hook.y);
-            ctx.strokeStyle = '#1abc9c';
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.arc(p.hook.x, p.hook.y, 5, 0, Math.PI * 2);
-            ctx.fillStyle = '#16a085';
-            ctx.fill();
           }
 
           const arma = WEAPON_VISUALS[p.weapon] || WEAPON_VISUALS.espada;
 
-          // Dibujar Stickman
           ctx.strokeStyle = p.color;
           ctx.lineWidth = 4;
           ctx.lineCap = 'round';
@@ -597,238 +456,39 @@
           ctx.lineTo(p.x + 6, p.y + 25);
           ctx.stroke();
 
-          // Brazos dinámicos sosteniendo el arma
+          // --- ARMA EQUIPADA ---
+          let largoArma = p.isAttacking ? arma.attackLength : arma.length;
+          let anguloArma = p.isAttacking ? 0 : 0.4;
+
           let manoX = p.x + 4 * p.facing;
           let manoY = p.y + 4;
 
-          // Ángulo base de apuntado / ataque
-          let anguloArma = 0.2; 
-          let largoArma = arma.length;
+          let puntaX = manoX + Math.cos(anguloArma) * largoArma * p.facing;
+          let puntaY = manoY + Math.sin(anguloArma) * largoArma;
 
           if (p.isAttacking) {
-            if (arma.type === 'melee_slash') {
-              anguloArma = -0.5; // Gira hacia arriba en ataque rápido
-              largoArma += 8;
-            } else if (arma.type === 'melee_thrust') {
-              anguloArma = 0; // Estocada recta horizontal
-              largoArma += 12;
-            } else if (arma.type === 'melee_heavy') {
-              anguloArma = 1.0; // Aplastamiento violento hacia abajo
-            }
+            ctx.beginPath();
+            ctx.arc(manoX, manoY, largoArma + 5, -0.2, 0.2);
+            ctx.strokeStyle = 'rgba(255, 242, 0, 0.2)';
+            ctx.lineWidth = 8;
+            ctx.stroke();
           }
 
-          let destelloDisparo = false;
-          if (arma.type === 'ranged' && p.inputs.attack && p.shootCooldown > 0) {
-            destelloDisparo = true;
-          }
+          ctx.beginPath();
+          ctx.moveTo(manoX, manoY);
+          ctx.lineTo(puntaX, puntaY);
+          ctx.strokeStyle = arma.color;
+          ctx.lineWidth = arma.width;
+          ctx.stroke();
 
-          // DIBUJO DEL ARMA SELECCIONADA (SIN LÍNEA BASE DE ESPADA QUE LO ARRUINE)
-          ctx.save();
-          ctx.translate(manoX, manoY);
-          ctx.scale(p.facing, 1); // Voltea el canvas horizontalmente si mira a la izquierda
-          ctx.rotate(anguloArma);
+          ctx.beginPath();
+          ctx.moveTo(manoX, manoY - 4);
+          ctx.lineTo(manoX, manoY + 4);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 3;
+          ctx.stroke();
 
-          if (p.weapon === 'espada') {
-            // Mango
-            ctx.fillStyle = '#8e44ad';
-            ctx.fillRect(0, -2, 8, 4);
-            // Guarda
-            ctx.fillStyle = '#f1c40f';
-            ctx.fillRect(8, -8, 3, 16);
-            // Hoja plateada
-            ctx.fillStyle = '#ecf0f1';
-            ctx.beginPath();
-            ctx.moveTo(11, -3);
-            ctx.lineTo(largoArma - 4, -3);
-            ctx.lineTo(largoArma, 0);
-            ctx.lineTo(largoArma - 4, 3);
-            ctx.lineTo(11, 3);
-            ctx.closePath();
-            ctx.fill();
-          } 
-          else if (p.weapon === 'espadon') {
-            // Mango largo
-            ctx.fillStyle = '#2c3e50';
-            ctx.fillRect(0, -2.5, 12, 5);
-            // Guarda masiva en V
-            ctx.fillStyle = '#d35400';
-            ctx.beginPath();
-            ctx.moveTo(12, -12);
-            ctx.lineTo(15, -12);
-            ctx.lineTo(15, 12);
-            ctx.lineTo(12, 12);
-            ctx.closePath();
-            ctx.fill();
-            // Hoja ancha de acero oscuro
-            ctx.fillStyle = '#7f8c8d';
-            ctx.beginPath();
-            ctx.moveTo(15, -6);
-            ctx.lineTo(largoArma - 8, -6);
-            ctx.lineTo(largoArma, 0);
-            ctx.lineTo(largoArma - 8, 6);
-            ctx.lineTo(15, 6);
-            ctx.closePath();
-            ctx.fill();
-          } 
-          else if (p.weapon === 'hoja_rapida') {
-            // Cazoleta circular de esgrima
-            ctx.fillStyle = '#f1c40f';
-            ctx.beginPath();
-            ctx.arc(4, 0, 5, 0, Math.PI * 2);
-            ctx.fill();
-            // Hoja muy delgada dorada
-            ctx.strokeStyle = '#f1c40f';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(4, 0);
-            ctx.lineTo(largoArma, 0);
-            ctx.stroke();
-          } 
-          else if (p.weapon === 'daga') {
-            // Mango miniatura
-            ctx.fillStyle = '#7f8c8d';
-            ctx.fillRect(0, -1.5, 5, 3);
-            // Hoja pequeña afilada
-            ctx.fillStyle = '#ecf0f1';
-            ctx.beginPath();
-            ctx.moveTo(5, -2.5);
-            ctx.lineTo(largoArma - 3, -2.5);
-            ctx.lineTo(largoArma, 0);
-            ctx.lineTo(largoArma - 3, 2.5);
-            ctx.lineTo(5, 2.5);
-            ctx.closePath();
-            ctx.fill();
-          } 
-          else if (p.weapon === 'lanza') {
-            // Asta larga de madera
-            ctx.strokeStyle = '#a0522d';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(largoArma - 14, 0);
-            ctx.stroke();
-            // Punta de acero
-            ctx.fillStyle = '#bdc3c7';
-            ctx.beginPath();
-            ctx.moveTo(largoArma - 14, -5);
-            ctx.lineTo(largoArma, 0);
-            ctx.lineTo(largoArma - 14, 5);
-            ctx.closePath();
-            ctx.fill();
-          } 
-          else if (p.weapon === 'hacha') {
-            // Astil
-            ctx.strokeStyle = '#8b5a2b';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(largoArma - 8, 0);
-            ctx.stroke();
-            // Cuchilla doble de hacha perpendicular al mango
-            ctx.fillStyle = '#95a5a6';
-            ctx.beginPath();
-            ctx.moveTo(largoArma - 12, -2);
-            ctx.quadraticCurveTo(largoArma - 16, -18, largoArma, -20);
-            ctx.lineTo(largoArma + 4, 0);
-            ctx.lineTo(largoArma, 20);
-            ctx.quadraticCurveTo(largoArma - 16, 18, largoArma - 12, 2);
-            ctx.closePath();
-            ctx.fill();
-          } 
-          else if (p.weapon === 'martillo') {
-            // Mango de metal
-            ctx.strokeStyle = '#7f8c8d';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(largoArma - 10, 0);
-            ctx.stroke();
-            // Bloque colosal de acero (perpendicular)
-            ctx.fillStyle = '#34495e';
-            ctx.fillRect(largoArma - 14, -16, 18, 32);
-            ctx.strokeStyle = '#bdc3c7';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(largoArma - 14, -16, 18, 32);
-          } 
-          else if (p.weapon === 'gancho') {
-            // Cadena metálica
-            ctx.strokeStyle = '#7f8c8d';
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(largoArma - 8, 0);
-            ctx.stroke();
-            // Ancla / Gancho de 3 garras
-            ctx.strokeStyle = '#1abc9c';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(largoArma - 8, 0);
-            ctx.lineTo(largoArma, 0);
-            // Garra arriba
-            ctx.moveTo(largoArma - 6, -6);
-            ctx.quadraticCurveTo(largoArma - 2, -6, largoArma, -1);
-            // Garra abajo
-            ctx.moveTo(largoArma - 6, 6);
-            ctx.quadraticCurveTo(largoArma - 2, 6, largoArma, 1);
-            ctx.stroke();
-          } 
-          else if (p.weapon === 'fusil_rapido') {
-            // Silueta de un fusil automático / ametralladora
-            ctx.fillStyle = '#f1c40f';
-            ctx.fillRect(0, -3, largoArma - 10, 6); // Cuerpo
-            ctx.fillStyle = '#2c3e50';
-            ctx.fillRect(-4, -1, 4, 5); // Culata
-            ctx.fillRect(6, 2, 3, 6);   // Empuñadura
-            // Cargador curvado
-            ctx.strokeStyle = '#34495e';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(10, 5, 8, 0, Math.PI / 3);
-            ctx.stroke();
-            // Cañón
-            ctx.fillStyle = '#7f8c8d';
-            ctx.fillRect(largoArma - 10, -1.5, 10, 3);
-          } 
-          else if (p.weapon === 'fusil_pesado') {
-            // Francotirador / Rifle pesado
-            ctx.fillStyle = '#e74c3c';
-            ctx.fillRect(0, -4, largoArma - 16, 7); // Cuerpo largo
-            ctx.fillStyle = '#2c3e50';
-            ctx.fillRect(-6, -2, 6, 7); // Culata robusta
-            ctx.fillRect(6, 3, 4, 6);   // Empuñadura
-            // Mira telescópica montada
-            ctx.fillRect(8, -7, 10, 3);
-            // Cañón de gran calibre
-            ctx.fillStyle = '#34495e';
-            ctx.fillRect(largoArma - 16, -2, 16, 4);
-          } 
-          else if (p.weapon === 'fusil_plasma') {
-            // Fusil futurista con núcleo brillante
-            ctx.fillStyle = '#8e44ad';
-            ctx.fillRect(0, -5, largoArma - 12, 10); // Cuerpo de plasma
-            ctx.fillStyle = '#34495e';
-            ctx.fillRect(-4, -2, 4, 7); // Culata sci-fi
-            ctx.fillRect(5, 5, 3, 5);   // Agarre
-            // Tubos de energía
-            ctx.fillStyle = '#00ffff';
-            ctx.fillRect(4, -2.5, largoArma - 20, 5);
-            // Cañón doble
-            ctx.fillStyle = '#ecf0f1';
-            ctx.fillRect(largoArma - 12, -4, 12, 2.5);
-            ctx.fillRect(largoArma - 12, 1.5, 12, 2.5);
-          }
-
-          // Destello en la punta al disparar
-          if (destelloDisparo) {
-            ctx.fillStyle = '#fff200';
-            ctx.beginPath();
-            ctx.arc(largoArma + 5, 0, 10, 0, Math.PI * 2);
-            ctx.fill();
-          }
-
-          ctx.restore();
-
-          // Etiqueta superior del jugador
+          // Etiqueta de jugador
           ctx.font = 'bold 11px sans-serif';
           ctx.fillStyle = p.color;
           ctx.textAlign = 'center';
