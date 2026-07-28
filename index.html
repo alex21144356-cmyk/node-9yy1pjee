@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <title>Supreme Duelist Stickman — Arcade Edition</title>
+    <title>Stickman — Arcade Edition</title>
     <style>
       * {
         box-sizing: border-box;
@@ -406,8 +406,8 @@
     <div id="screen-landing" class="screen active">
       <div class="arcade-badge">⚡ 4 Players Arcade Battle ⚡</div>
       <h1 id="landing-title">
-        <span class="neon-pink">Supreme</span><br />
-        <span class="neon-cyan">Duelist</span><br />
+        <span class="neon-pink">ULTRE</span><br />
+        <span class="neon-cyan">DUELS</span><br />
         Stickman
       </h1>
       <div id="landing-subtitle">Arena Edition</div>
@@ -507,7 +507,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
       // ================================================================
-      //  1. ANIMACIÓN AUTÓNOMA DE DEMO (PELEA DE MONITOS EN EL FONDO)
+      //  1. IA DE FONDO MEJORADA (MOVIMIENTO FLUIDO SIN BUCLES)
       // ================================================================
       const bgCanvas = document.getElementById('bg-canvas');
       const bgCtx = bgCanvas.getContext('2d');
@@ -519,83 +519,95 @@
       window.addEventListener('resize', resizeBgCanvas);
       resizeBgCanvas();
 
-      // Peleadores en segundo plano
       const demoFighters = [
-        { x: 150, y: 300, vx: 2, vy: 0, color: '#ff0055', facing: 1, weapon: 'espada', isAttacking: false, attackTimer: 0 },
-        { x: window.innerWidth - 150, y: 300, vx: -2, vy: 0, color: '#00f0ff', facing: -1, weapon: 'pistola', isAttacking: false, attackTimer: 0 }
+        { x: window.innerWidth * 0.25, y: 300, vx: 3, vy: 0, color: '#ff0055', facing: 1, weapon: 'espada', isAttacking: false, attackCooldown: 0 },
+        { x: window.innerWidth * 0.75, y: 300, vx: -3, vy: 0, color: '#00f0ff', facing: -1, weapon: 'pistola', isAttacking: false, attackCooldown: 0 }
       ];
 
       const demoParticles = [];
       const demoBullets = [];
 
       function updateDemoFighters() {
-        const floorY = bgCanvas.height - 80;
+        const floorY = bgCanvas.height - 70;
+        const width = bgCanvas.width;
 
         demoFighters.forEach((f, idx) => {
           const other = demoFighters[idx === 0 ? 1 : 0];
+          const dist = other.x - f.x;
+          const absDist = Math.abs(dist);
 
-          // IA simple de persecución
+          // Movimiento e Inercia
           f.x += f.vx;
           f.y += f.vy;
 
           // Gravedad
           if (f.y < floorY) {
-            f.vy += 0.5;
+            f.vy += 0.6;
           } else {
             f.y = floorY;
             f.vy = 0;
-            // Salto aleatorio al acercarse
-            if (Math.abs(f.x - other.x) < 200 && Math.random() < 0.03) {
-              f.vy = -12;
+            // Salto dinámico si está cerca o atrapado
+            if (absDist < 180 && Math.random() < 0.04) {
+              f.vy = -12 - Math.random() * 4;
             }
           }
 
-          // Orientación
-          f.facing = other.x > f.x ? 1 : -1;
-          f.vx = (other.x > f.x ? 1 : -1) * 3;
+          // Lógica de dirección inteligente (Evita trabarse)
+          if (absDist > 60) {
+            f.vx = dist > 0 ? 3.5 : -3.5;
+            f.facing = dist > 0 ? 1 : -1;
+          } else {
+            // Si se pegan demasiado, uno salta/retrocede para romper el estancamiento
+            if (Math.random() < 0.05) {
+              f.vx = (Math.random() > 0.5 ? 1 : -1) * 4;
+            }
+          }
 
-          // Ataques automáticos
-          if (Math.abs(f.x - other.x) < 120) {
-            f.attackTimer++;
-            if (f.attackTimer > 25) {
-              f.isAttacking = true;
-              f.attackTimer = 0;
+          // Rebote suave en las paredes
+          if (f.x < 100) {
+            f.x = 100;
+            f.vx = 4;
+            f.facing = 1;
+          }
+          if (f.x > width - 100) {
+            f.x = width - 100;
+            f.vx = -4;
+            f.facing = -1;
+          }
 
-              // Generar disparos o chispas de impacto
-              if (f.weapon === 'pistola') {
-                demoBullets.push({ x: f.x + f.facing * 15, y: f.y - 5, vx: f.facing * 12 });
-              } else {
-                for (let i = 0; i < 6; i++) {
-                  demoParticles.push({
-                    x: f.x + f.facing * 20,
-                    y: f.y - 10,
-                    vx: (Math.random() - 0.5) * 8,
-                    vy: (Math.random() - 0.5) * 8,
-                    color: f.color,
-                    life: 20
-                  });
-                }
-              }
+          // Ataques
+          f.attackCooldown--;
+          if (absDist < 200 && f.attackCooldown <= 0) {
+            f.isAttacking = true;
+            f.attackCooldown = 30 + Math.floor(Math.random() * 20);
+
+            if (f.weapon === 'pistola') {
+              demoBullets.push({ x: f.x + f.facing * 20, y: f.y - 10, vx: f.facing * 14 });
             } else {
-              f.isAttacking = false;
+              for (let i = 0; i < 7; i++) {
+                demoParticles.push({
+                  x: f.x + f.facing * 25,
+                  y: f.y - 10,
+                  vx: (Math.random() - 0.5) * 8 + f.facing * 2,
+                  vy: (Math.random() - 0.5) * 8,
+                  color: f.color,
+                  life: 18
+                });
+              }
             }
+          } else if (f.attackCooldown < 20) {
+            f.isAttacking = false;
           }
-
-          // Limites laterales
-          if (f.x < 50) f.x = 50;
-          if (f.x > bgCanvas.width - 50) f.x = bgCanvas.width - 50;
         });
 
-        // Actualizar balas
+        // Balas
         for (let i = demoBullets.length - 1; i >= 0; i--) {
           const b = demoBullets[i];
           b.x += b.vx;
-          if (b.x < 0 || b.x > bgCanvas.width) {
-            demoBullets.splice(i, 1);
-          }
+          if (b.x < 0 || b.x > width) demoBullets.splice(i, 1);
         }
 
-        // Actualizar partículas
+        // Partículas
         for (let i = demoParticles.length - 1; i >= 0; i--) {
           const p = demoParticles[i];
           p.x += p.vx;
@@ -632,7 +644,7 @@
         bgCtx.lineTo(f.x + 12, f.y + 45);
         bgCtx.stroke();
 
-        // Brazos y arma
+        // Armas / Brazos
         const manoX = f.x + f.facing * 18;
         const manoY = f.y - 5;
         bgCtx.beginPath();
@@ -640,14 +652,13 @@
         bgCtx.lineTo(manoX, manoY);
         bgCtx.stroke();
 
-        // Dibujar Arma
         bgCtx.translate(manoX, manoY);
         bgCtx.scale(f.facing, 1);
         if (f.weapon === 'espada') {
           bgCtx.strokeStyle = '#fff';
           bgCtx.beginPath();
           bgCtx.moveTo(0, 0);
-          bgCtx.lineTo(f.isAttacking ? 45 : 30, f.isAttacking ? -15 : 0);
+          bgCtx.lineTo(f.isAttacking ? 45 : 30, f.isAttacking ? -10 : 0);
           bgCtx.stroke();
         } else {
           bgCtx.fillStyle = '#fff';
@@ -660,10 +671,10 @@
       function loopBgDemo() {
         bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
 
-        // Dibujar suelo de la demo
-        const floorY = bgCanvas.height - 35;
-        bgCtx.strokeStyle = 'rgba(0, 240, 255, 0.2)';
-        bgCtx.lineWidth = 2;
+        // Suelo estilizado
+        const floorY = bgCanvas.height - 25;
+        bgCtx.strokeStyle = 'rgba(0, 240, 255, 0.25)';
+        bgCtx.lineWidth = 3;
         bgCtx.beginPath();
         bgCtx.moveTo(0, floorY);
         bgCtx.lineTo(bgCanvas.width, floorY);
@@ -671,7 +682,6 @@
 
         updateDemoFighters();
 
-        // Dibujar balas
         demoBullets.forEach((b) => {
           bgCtx.fillStyle = '#ffcc00';
           bgCtx.shadowColor = '#ffcc00';
@@ -681,7 +691,6 @@
           bgCtx.fill();
         });
 
-        // Dibujar partículas
         demoParticles.forEach((p) => {
           bgCtx.fillStyle = p.color;
           bgCtx.beginPath();
@@ -823,7 +832,7 @@
       });
 
       // ================================================================
-      //  3. JUEGO EN MULTIJUGADOR (SOCKET.IO)
+      //  3. JUEGO MULTIJUGADOR EN CANVA
       // ================================================================
       let socket = null;
       const canvas = document.getElementById('gameCanvas');
