@@ -24,7 +24,7 @@ async function initDB() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         nombre VARCHAR(30) NOT NULL,
         puntuacion INT NOT NULL,
-        fecha DATETIME DEFAULT CURRENT_TIMESTAMP
+        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log('✅ Conectado a MySQL. Tabla "ganadores" lista.');
