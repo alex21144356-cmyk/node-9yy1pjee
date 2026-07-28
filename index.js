@@ -12,8 +12,14 @@ const {
 
 const app = express();
 const http = require('http').createServer(app);
+
+// 1. OPTIMIZACIÓN: Compresión activa en Socket.IO
 const io = require('socket.io')(http, {
   cors: { origin: '*' },
+  perMessageDeflate: {
+    threshold: 256
+  },
+  httpCompression: true
 });
 
 app.use(express.json());
@@ -102,7 +108,7 @@ app.get('/api/me', (req, res) => {
   }
 });
 
-// Lista de ganadores históricos guardados en MySQL (nombre + puntuación)
+// Lista de ganadores históricos guardados en MySQL
 app.get('/api/ganadores', async (req, res) => {
   try {
     const ganadores = await obtenerGanadores();
@@ -154,7 +160,7 @@ function spawnWeaponPickup() {
   weaponPickups[id] = {
     id,
     type: armaAleatoria(),
-    x: 60 + Math.random() * (CANVAS_WIDTH - 120),
+    x: Math.round(60 + Math.random() * (CANVAS_WIDTH - 120)),
     y: FLOOR_Y - 14,
   };
 }
@@ -187,7 +193,6 @@ const MAPS = [
     name: 'Torre Fragmentada', bg: '#170f22', floorColor: '#5a3d7a', floorSegments: [],
     platforms: [{ x: 55, y: 380, width: 110, height: 14 }, { x: 245, y: 320, width: 110, height: 14 }, { x: 420, y: 260, width: 110, height: 14 }, { x: 590, y: 320, width: 110, height: 14 }, { x: 730, y: 380, width: 90, height: 14 }],
   },
-  // ------ 6 mapas nuevos ------
   {
     name: 'Ciudad en Ruinas', bg: '#20232a', floorColor: '#7f8c8d', floorSegments: [[0, 320], [480, 800]],
     platforms: [{ x: 330, y: 340, width: 140, height: 16 }, { x: 60, y: 300, width: 90, height: 14 }, { x: 650, y: 300, width: 90, height: 14 }],
@@ -215,7 +220,7 @@ const MAPS = [
 ];
 let currentMapIndex = Math.floor(Math.random() * MAPS.length);
 let matchActive = true;
-let cambiandoRonda = false; // evita disparar varios cambios de mapa a la vez
+let cambiandoRonda = false;
 
 // ============== CONEXIÓN DE JUGADORES ==============
 io.on('connection', (socket) => {
@@ -240,13 +245,11 @@ io.on('connection', (socket) => {
   };
 
   socket.emit('init', { id: socket.id });
-  io.emit('estadoJuego', empaquetarEstado());
 
   socket.on('input', (keys) => {
     if (players[socket.id]) players[socket.id].inputs = keys;
   });
 
-  // El jugador escribe su nombre al entrar; se usa para guardarlo en MySQL si gana
   socket.on('setName', (nombre) => {
     if (players[socket.id] && typeof nombre === 'string') {
       const limpio = nombre.trim().slice(0, 20);
@@ -257,12 +260,32 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('Usuario desconectado:', socket.id);
     delete players[socket.id];
-    io.emit('estadoJuego', empaquetarEstado());
   });
 });
 
+// 2. OPTIMIZACIÓN: Compresión de datos reduciendo precisión flotante
 function empaquetarEstado() {
-  return { players, weaponPickups, bullets, mapIndex: currentMapIndex, matchActive };
+  const optPlayers = {};
+  for (let id in players) {
+    const p = players[id];
+    optPlayers[id] = {
+      id: p.id, role: p.role, name: p.name, color: p.color,
+      x: Math.round(p.x), y: Math.round(p.y), health: p.health,
+      facing: p.facing, isAttacking: p.isAttacking,
+      score: p.score, weapon: p.weapon
+    };
+  }
+
+  const optBullets = {};
+  for (let id in bullets) {
+    const b = bullets[id];
+    optBullets[id] = {
+      id: b.id, x: Math.round(b.x), y: Math.round(b.y),
+      vx: b.vx, weapon: b.weapon
+    };
+  }
+
+  return { players: optPlayers, weaponPickups, bullets: optBullets, mapIndex: currentMapIndex, matchActive };
 }
 
 function dentroDeSegmento(x, segments) {
@@ -287,7 +310,7 @@ function scheduleRespawn(targetId) {
   }, 1500);
 }
 
-// ============== CAMBIO DE MAPA AL QUEDAR UN SOLO JUGADOR EN PIE ==============
+// ============== CAMBIO DE MAPA ==============
 function iniciarNuevaRonda(survivorId) {
   if (cambiandoRonda) return;
   cambiandoRonda = true;
@@ -344,7 +367,6 @@ function aplicarDanio(attackerId, targetId, damage, knockbackDir, knockbackForce
       return;
     }
 
-    // Si tras esta muerte solo queda un jugador con vida, cambiamos de mapa (ronda nueva)
     const activos = jugadoresActivos();
     const vivos = activos.filter((p) => p.health > 0);
     if (activos.length >= 2 && vivos.length === 1) {
@@ -446,9 +468,8 @@ function terminarPartida() {
 
   io.emit('finDePartida', { podium: ranking });
 
-  // Solo se guarda el GANADOR (1er lugar) en MySQL, con su nombre real y puntuación
   if (ranking[0]) {
-    guardarGanador(ranking[0].name, ranking[0].score); // no bloquea el juego (async)
+    guardarGanador(ranking[0].name, ranking[0].score);
   }
 
   setTimeout(() => {
@@ -481,10 +502,7 @@ function terminarPartida() {
 let framesDesdeUltimoPickup = 0;
 
 setInterval(() => {
-  if (!matchActive) {
-    io.emit('estadoJuego', empaquetarEstado());
-    return;
-  }
+  if (!matchActive) return;
 
   const map = MAPS[currentMapIndex];
 
@@ -497,10 +515,7 @@ setInterval(() => {
   }
 
   actualizarBalas();
-  if (!matchActive) {
-    io.emit('estadoJuego', empaquetarEstado());
-    return;
-  }
+  if (!matchActive) return;
 
   for (let id in players) {
     let p = players[id];
@@ -527,10 +542,7 @@ setInterval(() => {
         else if (arma.type === 'ranged') dispararArma(id, arma);
         else if (arma.type === 'grapple') usarGancho(id, arma);
 
-        if (!matchActive) {
-          io.emit('estadoJuego', empaquetarEstado());
-          return;
-        }
+        if (!matchActive) return;
       }
     }
 
@@ -581,12 +593,18 @@ setInterval(() => {
       }
     }
   }
-
-  io.emit('estadoJuego', empaquetarEstado());
 }, 1000 / 60);
+
+// 3. OPTIMIZACIÓN: Transmisión separada de red a 20 FPS (50 ms)
+setInterval(() => {
+  if (Object.keys(players).length > 0) {
+    io.emit('estadoJuego', empaquetarEstado());
+  }
+}, 50);
 
 initDB();
 
-http.listen(3000, () => {
-  console.log('Servidor de combate activo en el puerto 3000');
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, () => {
+  console.log(`Servidor de combate activo en el puerto ${PORT}`);
 });
