@@ -1,13 +1,18 @@
 {
-  "name": "node-starter",
-  "version": "0.0.0",
+  "name": "stickman-supreme-duelist-showdown",
+  "version": "1.1.0",
+  "description": "Stickman Supreme Duelist Showdown - 4 jugadores, armas, mapas, rondas y login",
+  "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
     "express": "^5.2.1",
-    "socket.io": "^4.8.3",
+    "express-session": "^1.18.0",
     "mysql2": "^3.11.0",
-    "dotenv": "^16.4.5"
+    "socket.io": "^4.8.3"
   }
 }
