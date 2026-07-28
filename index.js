@@ -45,6 +45,7 @@ const ROLE_CONFIG = {
 const WEAPONS = {
   espada: { name: 'Espada', type: 'melee', range: 45, damage: 12, knockback: 16, attackDuration: 10 },
   espada_larga: { name: 'Espadón', type: 'melee', range: 60, damage: 16, knockback: 20, attackDuration: 16 },
+  pistola: { name: 'Pistola', type: 'ranged', damage: 5, knockback: 5, attackDuration: 10, bulletSpeed: 16, bulletLife: 50, bulletCount: 1 },
   fusil_asalto: { name: 'Fusil de Asalto', type: 'ranged', damage: 6, knockback: 6, attackDuration: 12, bulletSpeed: 14, bulletLife: 70, bulletCount: 1 },
   escopeta: { name: 'Escopeta', type: 'ranged', damage: 7, knockback: 10, attackDuration: 32, bulletSpeed: 12, bulletLife: 24, bulletCount: 5 },
   francotirador: { name: 'Rifle Francotirador', type: 'ranged', damage: 28, knockback: 14, attackDuration: 55, bulletSpeed: 22, bulletLife: 80, bulletCount: 1 },
@@ -96,9 +97,35 @@ const MAPS = [
     name: 'Torre Fragmentada', bg: '#170f22', floorColor: '#5a3d7a', floorSegments: [],
     platforms: [{ x: 55, y: 380, width: 110, height: 14 }, { x: 245, y: 320, width: 110, height: 14 }, { x: 420, y: 260, width: 110, height: 14 }, { x: 590, y: 320, width: 110, height: 14 }, { x: 730, y: 380, width: 90, height: 14 }],
   },
+  // ------ 6 mapas nuevos ------
+  {
+    name: 'Ciudad en Ruinas', bg: '#20232a', floorColor: '#7f8c8d', floorSegments: [[0, 320], [480, 800]],
+    platforms: [{ x: 330, y: 340, width: 140, height: 16 }, { x: 60, y: 300, width: 90, height: 14 }, { x: 650, y: 300, width: 90, height: 14 }],
+  },
+  {
+    name: 'Bosque Encantado', bg: '#0b2e13', floorColor: '#2f6b3c', floorSegments: [[0, 800]],
+    platforms: [{ x: 120, y: 300, width: 100, height: 16 }, { x: 340, y: 260, width: 100, height: 16 }, { x: 580, y: 300, width: 100, height: 16 }],
+  },
+  {
+    name: 'Estación Espacial', bg: '#05070f', floorColor: '#3b4a6b', floorSegments: [[0, 800]],
+    platforms: [{ x: 100, y: 260, width: 130, height: 14 }, { x: 585, y: 260, width: 130, height: 14 }, { x: 340, y: 340, width: 130, height: 14 }],
+  },
+  {
+    name: 'Desierto Ardiente', bg: '#4a2b0f', floorColor: '#c9974b', floorSegments: [[0, 800]],
+    platforms: [{ x: 250, y: 320, width: 150, height: 16 }, { x: 500, y: 260, width: 120, height: 16 }],
+  },
+  {
+    name: 'Catacumbas', bg: '#14100a', floorColor: '#5c4a37', floorSegments: [[0, 150], [300, 500], [650, 800]],
+    platforms: [{ x: 180, y: 340, width: 90, height: 14 }, { x: 530, y: 340, width: 90, height: 14 }],
+  },
+  {
+    name: 'Coliseo Antiguo', bg: '#3a2a1a', floorColor: '#c2a878', floorSegments: [[0, 800]],
+    platforms: [{ x: 160, y: 280, width: 110, height: 16 }, { x: 345, y: 230, width: 110, height: 16 }, { x: 530, y: 280, width: 110, height: 16 }],
+  },
 ];
 let currentMapIndex = Math.floor(Math.random() * MAPS.length);
 let matchActive = true;
+let cambiandoRonda = false; // evita disparar varios cambios de mapa a la vez
 
 // ============== CONEXIÓN DE JUGADORES ==============
 io.on('connection', (socket) => {
@@ -152,6 +179,10 @@ function dentroDeSegmento(x, segments) {
   return segments.some((s) => x >= s[0] && x <= s[1]);
 }
 
+function jugadoresActivos() {
+  return Object.values(players).filter((p) => p.role <= MAX_PLAYERS);
+}
+
 function scheduleRespawn(targetId) {
   setTimeout(() => {
     if (players[targetId]) {
@@ -164,6 +195,45 @@ function scheduleRespawn(targetId) {
       players[targetId].weapon = 'espada';
     }
   }, 1500);
+}
+
+// ============== CAMBIO DE MAPA AL QUEDAR UN SOLO JUGADOR EN PIE ==============
+function iniciarNuevaRonda(survivorId) {
+  if (cambiandoRonda) return;
+  cambiandoRonda = true;
+
+  const survivor = players[survivorId];
+  io.emit('rondaGanada', {
+    role: survivor ? survivor.role : null,
+    color: survivor ? survivor.color : '#fff',
+    name: survivor ? survivor.name : '',
+  });
+
+  setTimeout(() => {
+    if (!matchActive) { cambiandoRonda = false; return; }
+
+    currentMapIndex = Math.floor(Math.random() * MAPS.length);
+    weaponPickups = {};
+    bullets = {};
+
+    for (let id in players) {
+      let p = players[id];
+      if (p.role <= MAX_PLAYERS) {
+        const c = ROLE_CONFIG[p.role];
+        p.health = 100;
+        p.x = c.x;
+        p.y = 150;
+        p.vx = 0;
+        p.vy = 0;
+        p.weapon = armaAleatoria();
+        p.isAttacking = false;
+        p.attackTimer = 0;
+      }
+    }
+
+    io.emit('nuevaRonda', { mapIndex: currentMapIndex });
+    cambiandoRonda = false;
+  }, 2500);
 }
 
 function aplicarDanio(attackerId, targetId, damage, knockbackDir, knockbackForce) {
@@ -183,7 +253,15 @@ function aplicarDanio(attackerId, targetId, damage, knockbackDir, knockbackForce
       terminarPartida();
       return;
     }
-    scheduleRespawn(targetId);
+
+    // Si tras esta muerte solo queda un jugador con vida, cambiamos de mapa (ronda nueva)
+    const activos = jugadoresActivos();
+    const vivos = activos.filter((p) => p.health > 0);
+    if (activos.length >= 2 && vivos.length === 1) {
+      iniciarNuevaRonda(vivos[0].id);
+    } else {
+      scheduleRespawn(targetId);
+    }
   }
 }
 
