@@ -1,6 +1,14 @@
 require('dotenv').config();
 const express = require('express');
-const { initDB, guardarGanador, obtenerGanadores } = require('./db');
+const session = require('express-session');
+const bcrypt = require('bcryptjs');
+const {
+  initDB,
+  guardarGanador,
+  obtenerGanadores,
+  crearUsuario,
+  buscarUsuarioPorNombre,
+} = require('./db');
 
 const app = express();
 const http = require('http').createServer(app);
@@ -8,8 +16,90 @@ const io = require('socket.io')(http, {
   cors: { origin: '*' },
 });
 
+app.use(express.json());
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'stickman_supreme_cambia_este_secreto',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 1000 * 60 * 60 * 24 * 30 }, // 30 días
+  })
+);
+
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
+});
+
+// ============== AUTENTICACIÓN (LOGIN / REGISTRO) ==============
+function usuarioValido(username) {
+  return typeof username === 'string' && /^[a-zA-Z0-9_]{3,20}$/.test(username);
+}
+
+app.post('/api/register', async (req, res) => {
+  const { username, password } = req.body || {};
+
+  if (!usuarioValido(username)) {
+    return res
+      .status(400)
+      .json({ error: 'El usuario debe tener 3-20 caracteres (letras, números o _)' });
+  }
+  if (!password || password.length < 4) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 4 caracteres' });
+  }
+
+  try {
+    const existente = await buscarUsuarioPorNombre(username);
+    if (existente) {
+      return res.status(409).json({ error: 'Ese nombre de usuario ya está en uso' });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+    await crearUsuario(username, hash);
+
+    req.session.username = username;
+    res.json({ username });
+  } catch (err) {
+    console.error('Error en /api/register:', err.message);
+    res.status(500).json({ error: 'No se pudo crear la cuenta, intenta de nuevo' });
+  }
+});
+
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body || {};
+
+  if (!usuarioValido(username) || !password) {
+    return res.status(400).json({ error: 'Usuario o contraseña inválidos' });
+  }
+
+  try {
+    const usuario = await buscarUsuarioPorNombre(username);
+    if (!usuario) {
+      return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+    }
+
+    const coincide = await bcrypt.compare(password, usuario.password_hash);
+    if (!coincide) {
+      return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+    }
+
+    req.session.username = username;
+    res.json({ username });
+  } catch (err) {
+    console.error('Error en /api/login:', err.message);
+    res.status(500).json({ error: 'No se pudo iniciar sesión, intenta de nuevo' });
+  }
+});
+
+app.post('/api/logout', (req, res) => {
+  req.session.destroy(() => res.json({ ok: true }));
+});
+
+app.get('/api/me', (req, res) => {
+  if (req.session && req.session.username) {
+    res.json({ username: req.session.username });
+  } else {
+    res.status(401).json({ error: 'No has iniciado sesión' });
+  }
 });
 
 // Lista de ganadores históricos guardados en MySQL (nombre + puntuación)
