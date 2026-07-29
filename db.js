@@ -1,5 +1,6 @@
 const mysql = require('mysql2/promise');
 
+// Configura la conexion a MySQL
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 3306,
@@ -11,8 +12,10 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
+// Inicializa las tablas necesarias en la base de datos
 async function initDB() {
   try {
+    // Tabla para ganadores del juego
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ganadores (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -22,6 +25,7 @@ async function initDB() {
       )
     `);
 
+    // Tabla de usuarios registrados
     await pool.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -31,7 +35,7 @@ async function initDB() {
       )
     `);
 
-    // TABLAS ADAPTADAS AL JUEGO
+    // Tabla de catalogo de armas (Cumple CRUD)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS armas (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -41,6 +45,7 @@ async function initDB() {
       )
     `);
 
+    // Tabla de asignacion de equipamiento por usuario
     await pool.query(`
       CREATE TABLE IF NOT EXISTS equipamiento (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -52,23 +57,24 @@ async function initDB() {
       )
     `);
 
-    console.log('✅ Base de datos configurada con tablas del juego (Usuarios, Armas, Equipamiento).');
+    console.log('✅ Base de datos inicializada correctamente.');
   } catch (err) {
-    console.error('❌ Error de conexión/inicialización en MySQL:', err.message);
+    console.error('❌ Error al inicializar MySQL:', err.message);
   }
 }
 
-// Operaciones de Usuarios
+// Registro de usuarios
 async function crearUsuario(username, passwordHash) {
   await pool.query('INSERT INTO usuarios (username, password_hash) VALUES (?, ?)', [username, passwordHash]);
 }
 
+// Búsqueda de usuario por nombre
 async function buscarUsuarioPorNombre(username) {
   const [rows] = await pool.query('SELECT id, username, password_hash FROM usuarios WHERE username = ? LIMIT 1', [username]);
   return rows[0] || null;
 }
 
-// Operaciones CRUD de Armas (Reemplaza a los Libros)
+// Operaciones CRUD para Armas
 async function crearArma(nombre, tipo, dano) {
   const [res] = await pool.query('INSERT INTO armas (nombre, tipo, dano) VALUES (?, ?, ?)', [nombre, tipo, dano]);
   return res.insertId;
@@ -87,15 +93,17 @@ async function eliminarArma(id) {
   await pool.query('DELETE FROM armas WHERE id = ?', [id]);
 }
 
+// Registro de asignación de equipamiento
 async function registrarEquipamiento(usuarioId, armaId) {
   await pool.query('INSERT INTO equipamiento (usuario_id, arma_id) VALUES (?, ?)', [usuarioId, armaId]);
 }
 
+// Historial de puntuaciones
 async function guardarGanador(nombre, puntuacion) {
   try {
     await pool.query('INSERT INTO ganadores (nombre, puntuacion) VALUES (?, ?)', [nombre, puntuacion]);
   } catch (err) {
-    console.error('Error guardando ganador:', err.message);
+    console.error('Error al guardar ganador:', err.message);
   }
 }
 
