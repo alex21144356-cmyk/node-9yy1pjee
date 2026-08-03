@@ -18,7 +18,7 @@ const {
 const app = express();
 const http = require('http').createServer(app);
 
-// COTEJO: POO - Clase 1
+// POO - Clase 1
 class Arma {
   constructor(id, nombre, tipo, dano) {
     this.id = id;
@@ -28,28 +28,24 @@ class Arma {
   }
 }
 
-//  POO - Clase 2
+// POO - Clase 2
 class GestorArmeria {
   constructor() {
-    //   lista para almacenar o manipular datos
     this.inventario = [];
   }
 
   cargarArmas(listaRaw) {
-    // Ciclos para transformacion de listas
     this.inventario = [];
     for (let i = 0; i < listaRaw.length; i++) {
       this.inventario.push(new Arma(listaRaw[i].id, listaRaw[i].nombre, listaRaw[i].tipo, listaRaw[i].dano));
     }
   }
 
-  //  funcion recursiva
+  // Funcion Recursiva
   calcularDanoTotalRecursivo(lista, index = 0) {
-    // Estructura condicional if / else
     if (index >= lista.length) {
       return 0;
     } else {
-      // Llamada recursiva
       return lista[index].dano + this.calcularDanoTotalRecursivo(lista, index + 1);
     }
   }
@@ -57,7 +53,6 @@ class GestorArmeria {
 
 const armeriaManager = new GestorArmeria();
 
-// Configuracion basica para ahorra memoria
 app.use(express.json());
 app.use(express.static(__dirname));
 
@@ -74,10 +69,9 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-// Rutas de Autenticacion
+// Autenticacion
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body || {};
-  // COTEJO: Estructuras condicionales
   if (!username || !password || password.length < 4) {
     return res.status(400).json({ error: 'Datos invalidos' });
   }
@@ -88,7 +82,7 @@ app.post('/api/register', async (req, res) => {
       return res.status(409).json({ error: 'El usuario ya existe' });
     }
 
-    const hash = await bcrypt.hash(password, 8); // Hash de 8 rondas para menor consumo CPU
+    const hash = await bcrypt.hash(password, 8);
     await crearUsuario(username, hash);
     req.session.username = username;
     res.json({ username });
@@ -180,14 +174,14 @@ app.post('/api/equipamiento', async (req, res) => {
 
   try {
     const usuario = await buscarUsuarioPorNombre(req.session.username);
-    await registrarEquipamiento(usuario.id, armaId);
+    await registrarEquipamiento(usuario.id, armaId || 1);
+    await guardarGanador(req.session.username, 150);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Error al equipar' });
   }
 });
 
-// Tabla de puntajes / Ganadores
 app.get('/api/ganadores', async (req, res) => {
   try {
     const ganadores = await obtenerGanadores();
@@ -197,7 +191,6 @@ app.get('/api/ganadores', async (req, res) => {
   }
 });
 
-// Inicializar DB y Servidor
 initDB();
 
 const PORT = process.env.PORT || 3000;
