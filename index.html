@@ -15,26 +15,41 @@
         align-items: center;
         color: #ffffff;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        overflow-x: hidden;
+        overflow: hidden;
+      }
+
+      /* Canvas de Fondo (Monitos Peleando) */
+      #bg-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 1;
+        opacity: 0.35; /* Suave para no distraer la interfaz */
+        pointer-events: none;
       }
 
       /* Estilos para Tarjetas Neón */
       .glass-card {
-        width: 440px;
+        position: relative;
+        z-index: 10;
+        width: 460px;
         max-width: 90vw;
-        background: rgba(10, 14, 26, 0.85);
+        background: rgba(10, 14, 26, 0.88);
         border: 2px solid rgba(0, 240, 255, 0.4);
         border-radius: 8px;
         padding: 30px;
-        box-shadow: 0 0 25px rgba(0, 240, 255, 0.2);
+        box-shadow: 0 0 25px rgba(0, 240, 255, 0.25);
         text-align: center;
         margin: 20px 0;
+        backdrop-filter: blur(5px);
       }
 
       h2 { color: #00f0ff; letter-spacing: 2px; margin-top: 0; text-transform: uppercase; }
       .card-sub { color: #a0aec0; font-size: 12px; margin-bottom: 20px; }
 
-      .screen { display: none; flex-direction: column; align-items: center; width: 100%; }
+      .screen { display: none; flex-direction: column; align-items: center; width: 100%; z-index: 10; }
       .screen.active { display: flex; }
 
       /* Botones Estilizados */
@@ -50,6 +65,12 @@
         width: 100%;
         margin-top: 10px;
         transition: transform 0.1s ease;
+      }
+      .btn-play {
+        background: linear-gradient(90deg, #ff0055, #ff5500);
+        color: #fff;
+        font-size: 16px;
+        box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);
       }
       .arcade-btn:hover, .menu-btn:hover { transform: scale(1.02); filter: brightness(1.1); }
       
@@ -75,11 +96,22 @@
       th { color: #00f0ff; text-transform: uppercase; }
 
       .link-btn { background: none; border: none; color: #a0aec0; cursor: pointer; margin-top: 15px; text-decoration: underline; }
+
+      /* Canvas de Juego Activo */
+      #game-canvas {
+        background: #0d1117;
+        border: 2px solid #00f0ff;
+        border-radius: 6px;
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+      }
     </style>
   </head>
   <body>
 
-    <!-- PANTALLA DE INICIO (LANDING) -->
+    <!-- FONDO DE MONITOS PELEANDO (AUTOMATICO) -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- PANTALLA DE INICIO -->
     <div id="screen-landing" class="screen active">
       <div class="glass-card">
         <h2>Stickman Battle</h2>
@@ -104,15 +136,30 @@
       </div>
     </div>
 
-    <!-- MENU PRINCIPAL (COTEJO: Menu interactivo) -->
+    <!-- MENU PRINCIPAL CON BOTON PARA JUGAR -->
     <div id="screen-menu" class="screen">
       <div class="glass-card">
         <h2>Menu Principal</h2>
         <div class="card-sub">Bienvenido: <b id="menu-username" style="color:#00f0ff">Jugador</b></div>
 
-        <button id="btn-armeria" class="menu-btn">⚔️ Gestionar Armeria (CRUD)</button>
+        <!-- BOTON DE JUEGO PRINCIPAL -->
+        <button id="btn-jugar" class="arcade-btn btn-play">🎮 ¡JUGAR AHORA!</button>
+        
+        <button id="btn-armeria" class="menu-btn secondary">⚔️ Gestionar Armeria (CRUD)</button>
         <button id="btn-puntajes" class="menu-btn secondary">🏆 Tabla de Puntajes</button>
         <button id="menu-logout" class="link-btn">Cerrar Sesion</button>
+      </div>
+    </div>
+
+    <!-- PANTALLA DE JUEGO EN VIVO -->
+    <div id="screen-game" class="screen">
+      <div class="glass-card" style="width: 640px;">
+        <h2>🥊 ARENA DE COMBATE 🥊</h2>
+        <div class="card-sub">Usa A/D (Flechas) para moverte | ESPACIO para atacar</div>
+
+        <canvas id="game-canvas" width="580" height="260"></canvas>
+
+        <button id="btn-salir-juego" class="link-btn">← Salir al Menu</button>
       </div>
     </div>
 
@@ -122,7 +169,6 @@
         <h2>⚔️ Armeria (CRUD)</h2>
         <div class="card-sub" id="dano-recursivo-label">Dano Total Calculado: 0 DMG</div>
 
-        <!-- Formulario Crear/Editar -->
         <div style="display:flex; gap:8px;">
           <input id="arma-nombre" class="field-input" placeholder="Nombre Arma" />
           <input id="arma-tipo" class="field-input" placeholder="Tipo" />
@@ -130,7 +176,6 @@
         </div>
         <button id="btn-guardar-arma" class="arcade-btn">Guardar Arma</button>
 
-        <!-- Tabla de Armas de la BD -->
         <table id="tabla-armas">
           <thead>
             <tr>
@@ -170,13 +215,12 @@
 
     <script>
       // ================================================================
-      // LOGICA FRONTEND DE INTERACCION
-      //  Menu interactivo, Manipulacion de listas, Ciclos
+      // NAVEGACION ENTRE PANTALLAS
       // ================================================================
+      const SCREENS = ['screen-landing', 'screen-auth', 'screen-menu', 'screen-game', 'screen-armeria', 'screen-scores'];
+      let usuarioActual = 'Jugador';
 
-      const SCREENS = ['screen-landing', 'screen-auth', 'screen-menu', 'screen-armeria', 'screen-scores'];
       function mostrarPantalla(id) {
-        // Ciclos 
         for (let i = 0; i < SCREENS.length; i++) {
           document.getElementById(SCREENS[i]).classList.toggle('active', SCREENS[i] === id);
         }
@@ -185,12 +229,14 @@
       let modoAuth = 'login';
       let editandoArmaId = null;
 
-      // Botones de Navegacion
       document.getElementById('btn-entrar-landing').addEventListener('click', () => mostrarPantalla('screen-auth'));
       document.getElementById('btn-volver-armeria').addEventListener('click', () => mostrarPantalla('screen-menu'));
       document.getElementById('btn-volver-scores').addEventListener('click', () => mostrarPantalla('screen-menu'));
+      document.getElementById('btn-salir-juego').addEventListener('click', () => {
+        detenerJuego();
+        mostrarPantalla('screen-menu');
+      });
 
-      // Cambio entre Login y Registro
       document.getElementById('btn-toggle-auth').addEventListener('click', () => {
         if (modoAuth === 'login') {
           modoAuth = 'registro';
@@ -205,7 +251,6 @@
         }
       });
 
-      // Peticion Auth
       document.getElementById('auth-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const username = document.getElementById('auth-username').value;
@@ -220,14 +265,184 @@
 
         const data = await res.json();
         if (res.ok) {
-          document.getElementById('menu-username').innerText = data.username;
+          usuarioActual = data.username;
+          document.getElementById('menu-username').innerText = usuarioActual;
           mostrarPantalla('screen-menu');
         } else {
           alert(data.error || 'Error en autenticacion');
         }
       });
 
-      // Cargar CRUD de Armas
+      // ================================================================
+      // ANIMACION DE FONDO (PELEA AUTOMATICA DE STICKMEN)
+      // ================================================================
+      const bgCanvas = document.getElementById('bg-canvas');
+      const bgCtx = bgCanvas.getContext('2d');
+      
+      function resizeBg() {
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resizeBg);
+      resizeBg();
+
+      let bgFrame = 0;
+      function dibujarStickman(ctx, x, y, color, accion, dir = 1) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+
+        // Cabeza
+        ctx.arc(x, y - 40, 12, 0, Math.PI * 2);
+        
+        // Cuerpo
+        ctx.moveTo(x, y - 28);
+        ctx.lineTo(x, y);
+
+        // Brazos
+        if (accion === 'punch') {
+          ctx.moveTo(x, y - 20);
+          ctx.lineTo(x + 25 * dir, y - 20);
+          ctx.moveTo(x, y - 20);
+          ctx.lineTo(x - 10 * dir, y - 10);
+        } else {
+          const armSwing = Math.sin(bgFrame * 0.1) * 10;
+          ctx.moveTo(x, y - 20);
+          ctx.lineTo(x + 15 * dir, y - 10 + armSwing);
+          ctx.moveTo(x, y - 20);
+          ctx.lineTo(x - 15 * dir, y - 10 - armSwing);
+        }
+
+        // Piernas
+        const legSwing = Math.sin(bgFrame * 0.15) * 12;
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 12 + legSwing, y + 30);
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 12 - legSwing, y + 30);
+
+        ctx.stroke();
+      }
+
+      let p1X = 100, p2X = 300;
+      function animarFondo() {
+        bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+        bgFrame++;
+
+        const suelo = bgCanvas.height - 80;
+        const centro = bgCanvas.width / 2;
+
+        p1X = centro - 80 + Math.sin(bgFrame * 0.05) * 40;
+        p2X = centro + 80 - Math.cos(bgFrame * 0.05) * 40;
+
+        const p1Ataca = (bgFrame % 120) < 20;
+        const p2Ataca = (bgFrame % 120) > 60 && (bgFrame % 120) < 80;
+
+        dibujarStickman(bgCtx, p1X, suelo, '#00f0ff', p1Ataca ? 'punch' : 'idle', 1);
+        dibujarStickman(bgCtx, p2X, suelo, '#ff0055', p2Ataca ? 'punch' : 'idle', -1);
+
+        requestAnimationFrame(animarFondo);
+      }
+      animarFondo();
+
+      // ================================================================
+      // JUEGO INTERACTIVO (CANVAS PLAYABLE)
+      // ================================================================
+      const gameCanvas = document.getElementById('game-canvas');
+      const gameCtx = gameCanvas.getContext('2d');
+      let gameInterval = null;
+
+      let jugador = { x: 80, hp: 100, atacando: false };
+      let enemigo = { x: 480, hp: 100, atacando: false };
+      let teclas = {};
+
+      window.addEventListener('keydown', (e) => teclas[e.code] = true);
+      window.addEventListener('keyup', (e) => teclas[e.code] = false);
+
+      document.getElementById('btn-jugar').addEventListener('click', () => {
+        mostrarPantalla('screen-game');
+        iniciarJuego();
+      });
+
+      function iniciarJuego() {
+        jugador = { x: 80, hp: 100, atacando: false };
+        enemigo = { x: 480, hp: 100, atacando: false };
+        
+        if (gameInterval) clearInterval(gameInterval);
+        gameInterval = setInterval(loopJuego, 1000 / 30);
+      }
+
+      function detenerJuego() {
+        if (gameInterval) clearInterval(gameInterval);
+      }
+
+      function loopJuego() {
+        // Movimiento Jugador
+        if ((teclas['KeyA'] || teclas['ArrowLeft']) && jugador.x > 30) jugador.x -= 5;
+        if ((teclas['KeyD'] || teclas['ArrowRight']) && jugador.x < enemigo.x - 30) jugador.x += 5;
+
+        // Ataque Jugador
+        if (teclas['Space'] && !jugador.atacando) {
+          jugador.atacando = true;
+          if (Math.abs(jugador.x - enemigo.x) < 55) {
+            enemigo.hp -= 15;
+          }
+          setTimeout(() => jugador.atacando = false, 200);
+        }
+
+        // IA Enemigo basica
+        if (enemigo.x - jugador.x > 45) {
+          enemigo.x -= 2;
+        } else {
+          if (Math.random() < 0.08 && !enemigo.atacando) {
+            enemigo.atacando = true;
+            jugador.hp -= 10;
+            setTimeout(() => enemigo.atacando = false, 200);
+          }
+        }
+
+        // Renderizado
+        gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+        // Barras de Vida
+        gameCtx.fillStyle = '#00f0ff';
+        gameCtx.fillRect(20, 20, Math.max(0, jugador.hp * 2), 15);
+        gameCtx.fillStyle = '#ff0055';
+        gameCtx.fillRect(360 + (100 - Math.max(0, enemigo.hp)) * 2, 20, Math.max(0, enemigo.hp * 2), 15);
+
+        // Nombres
+        gameCtx.fillStyle = '#fff';
+        gameCtx.font = '12px sans-serif';
+        gameCtx.fillText(usuarioActual, 20, 15);
+        gameCtx.fillText('Rival Bot', 480, 15);
+
+        // Dibujar Combatientes
+        dibujarStickman(gameCtx, jugador.x, 200, '#00f0ff', jugador.atacando ? 'punch' : 'idle', 1);
+        dibujarStickman(gameCtx, enemigo.x, 200, '#ff0055', enemigo.atacando ? 'punch' : 'idle', -1);
+
+        // Revisar Ganador
+        if (enemigo.hp <= 0) {
+          detenerJuego();
+          alert('¡VICTORIA! Haz derrotado al rival.');
+          guardarPuntuacion(100 + jugador.hp * 5);
+          mostrarPantalla('screen-menu');
+        } else if (jugador.hp <= 0) {
+          detenerJuego();
+          alert('Derrota... Intentalo de nuevo.');
+          mostrarPantalla('screen-menu');
+        }
+      }
+
+      async function guardarPuntuacion(puntos) {
+        await fetch('/api/equipamiento', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ armaId: 1 })
+        });
+      }
+
+      // ================================================================
+      // LOGICA CRUD ARMERIA & PUNTAJES
+      // ================================================================
       document.getElementById('btn-armeria').addEventListener('click', () => {
         mostrarPantalla('screen-armeria');
         cargarArmas();
@@ -242,7 +457,6 @@
         const tbody = document.querySelector('#tabla-armas tbody');
         tbody.innerHTML = '';
 
-        //  Manejo de arreglos y ciclos
         data.armas.forEach(arma => {
           tbody.innerHTML += `
             <tr>
@@ -258,7 +472,6 @@
         });
       }
 
-      // Guardar / Actualizar Arma (CRUD)
       document.getElementById('btn-guardar-arma').addEventListener('click', async () => {
         const nombre = document.getElementById('arma-nombre').value;
         const tipo = document.getElementById('arma-tipo').value;
@@ -299,7 +512,6 @@
         cargarArmas();
       }
 
-      // Cargar Tabla de Puntajes
       document.getElementById('btn-puntajes').addEventListener('click', async () => {
         mostrarPantalla('screen-scores');
         const res = await fetch('/api/ganadores');
@@ -318,7 +530,6 @@
         });
       });
 
-      // Logout
       document.getElementById('menu-logout').addEventListener('click', async () => {
         await fetch('/api/logout', { method: 'POST' });
         mostrarPantalla('screen-landing');
