@@ -1,354 +1,1167 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stickman 4P - Arena</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: #050508; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stickman — Supreme Cyber Duelists</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #05070d;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #ffffff;
+        font-family: 'Rajdhani', sans-serif;
+        overflow: hidden;
+      }
 
-    /* ESTILO PANTALLA INICIO (Igual a la imagen 2) */
-    #auth-screen {
-      position: relative;
-      width: 420px;
-      background: rgba(10, 15, 26, 0.95);
-      border: 1px solid #17a2b8;
-      box-shadow: 0 0 20px rgba(23, 162, 184, 0.3);
-      border-radius: 4px;
-      padding: 30px;
-      text-align: center;
-      z-index: 10;
-    }
-    #auth-screen h2 { color: #00f0ff; letter-spacing: 2px; font-size: 24px; margin-bottom: 5px; }
-    #auth-screen p.sub { color: #8899a6; font-size: 11px; letter-spacing: 1.5px; margin-bottom: 25px; text-transform: uppercase; }
+      /* ===================== CANVAS DE FONDO (LUCHA DEMO) ===================== */
+      #bg-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 0;
+        pointer-events: none;
+        filter: blur(1px);
+      }
 
-    .tabs { display: flex; justify-content: space-around; margin-bottom: 20px; border-bottom: 1px solid #1c2d42; }
-    .tab { background: none; border: none; color: #8899a6; font-weight: bold; font-size: 13px; padding: 8px 15px; cursor: pointer; letter-spacing: 1px; }
-    .tab.active { color: #ff2a70; border-bottom: 2px solid #ff2a70; }
+      /* ===================== NAVEGACIÓN Y PANTALLAS ===================== */
+      .screen {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        z-index: 10;
+      }
+      .screen.active {
+        display: flex;
+      }
 
-    .form-group { text-align: left; margin-bottom: 15px; }
-    .form-group label { display: block; color: #00f0ff; font-size: 10px; font-weight: bold; letter-spacing: 1px; margin-bottom: 5px; text-transform: uppercase; }
-    .form-group input { width: 100%; background: #08101a; border: 1px solid #1c2d42; color: #fff; padding: 10px; border-radius: 3px; outline: none; }
-    .form-group input:focus { border-color: #00f0ff; }
+      /* ===================== LANDING SCREEN ===================== */
+      #screen-landing {
+        gap: 24px;
+        text-align: center;
+      }
 
-    .btn-submit { width: 100%; padding: 12px; background: linear-gradient(90deg, #ff0055, #ff5e00); border: none; color: #fff; font-weight: bold; font-size: 14px; letter-spacing: 1px; cursor: pointer; border-radius: 3px; margin-top: 10px; }
-    .btn-submit:hover { opacity: 0.9; }
+      .arcade-badge {
+        background: linear-gradient(90deg, #ff0055, #ff5500);
+        color: #fff;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 4px;
+        padding: 6px 22px;
+        text-transform: uppercase;
+        clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+        box-shadow: 0 0 20px rgba(255, 0, 85, 0.7);
+      }
 
-    #error-msg { color: #ff4757; font-size: 12px; margin-top: 15px; display: none; }
+      #landing-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 64px;
+        font-weight: 900;
+        line-height: 0.95;
+        letter-spacing: 4px;
+        margin: 0;
+        text-transform: uppercase;
+        text-shadow: 0 0 25px rgba(0, 240, 255, 0.6), 4px 4px 0px #ff0055;
+      }
+      #landing-title .neon-cyan { color: #00f0ff; }
+      #landing-title .neon-pink { color: #ff0055; }
 
-    /* DECORACIÓN MONITOS EN PANTALLA INICIO */
-    .stickmen-decor { position: absolute; bottom: -45px; left: 0; width: 100%; display: flex; justify-content: center; gap: 40px; }
-    .stickman-svg { width: 25px; height: 40px; }
+      #landing-subtitle {
+        font-size: 14px;
+        letter-spacing: 8px;
+        color: #00f0ff;
+        text-transform: uppercase;
+        text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+      }
 
-    /* ESTILO JUEGO (Igual a la imagen 1) */
-    #game-container { display: none; flex-direction: column; align-items: center; }
-    .scoreboard { display: flex; gap: 10px; background: rgba(10, 15, 26, 0.8); border: 1px solid #17a2b8; padding: 10px; border-radius: 4px; margin-bottom: 10px; width: 800px; }
-    .p-card { flex: 1; background: #08101a; padding: 6px; border-radius: 3px; text-align: center; font-size: 12px; border: 1px solid #1c2d42; }
-    .p-card .hp-bar { height: 8px; background: #222; margin-top: 5px; border-radius: 2px; overflow: hidden; }
-    .p-card .hp-fill { height: 100%; width: 100%; background: #ff2a70; transition: width 0.15s; }
+      .arcade-btn {
+        font-family: 'Orbitron', sans-serif;
+        background: linear-gradient(135deg, #00f0ff 0%, #0077ff 100%);
+        color: #000;
+        font-weight: 900;
+        font-size: 20px;
+        letter-spacing: 4px;
+        padding: 18px 65px;
+        border: none;
+        cursor: pointer;
+        text-transform: uppercase;
+        clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+        box-shadow: 0 0 30px rgba(0, 240, 255, 0.7);
+        transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+      }
+      .arcade-btn:hover {
+        transform: scale(1.05) translateY(-2px);
+        filter: brightness(1.2);
+        box-shadow: 0 0 45px rgba(0, 240, 255, 0.9);
+      }
+      .arcade-btn:active {
+        transform: scale(0.98);
+      }
 
-    canvas { background: #0d131d; border: 1px solid #17a2b8; box-shadow: 0 0 15px rgba(23, 162, 184, 0.2); }
-    .map-title { color: #00f0ff; margin-bottom: 6px; font-weight: bold; font-size: 13px; letter-spacing: 1px; }
-    .controls-hint { margin-top: 12px; color: #ff2a70; font-size: 12px; font-weight: bold; text-align: center; letter-spacing: 0.5px; }
-    .btn-abandonar { margin-top: 8px; background: none; border: none; color: #8899a6; font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
-  </style>
-</head>
-<body>
+      /* ===================== TARJETAS CRISTAL (AUTH Y MENÚ) ===================== */
+      .glass-card {
+        width: 420px;
+        max-width: 90vw;
+        background: rgba(10, 15, 30, 0.82);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(0, 240, 255, 0.35);
+        border-radius: 6px;
+        padding: 35px 30px;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(0, 240, 255, 0.12);
+        text-align: center;
+        position: relative;
+      }
+      .glass-card h2 {
+        font-family: 'Orbitron', sans-serif;
+        color: #00f0ff;
+        letter-spacing: 3px;
+        font-size: 24px;
+        margin: 0 0 6px 0;
+        text-transform: uppercase;
+        text-shadow: 0 0 12px rgba(0, 240, 255, 0.6);
+      }
+      .glass-card .card-sub {
+        color: #94a3b8;
+        font-size: 13px;
+        letter-spacing: 2px;
+        margin-bottom: 22px;
+        text-transform: uppercase;
+      }
 
-  <!-- PANTALLA DE INICIO IDÉNTICA A LA IMAGEN 2 -->
-  <div id="auth-screen">
-    <h2>ACCESO ARENA</h2>
-    <p class="sub">Ingresa tus datos para luchar</p>
+      .tabs { display: flex; margin-bottom: 22px; border-bottom: 2px solid rgba(255, 255, 255, 0.1); }
+      .tab-btn {
+        flex: 1;
+        background: none;
+        border: none;
+        color: #64748b;
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 700;
+        letter-spacing: 2px;
+        font-size: 13px;
+        padding: 12px 0;
+        cursor: pointer;
+        text-transform: uppercase;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
+      }
+      .tab-btn.active { color: #ff0055; border-bottom-color: #ff0055; text-shadow: 0 0 10px rgba(255, 0, 85, 0.7); }
 
-    <div class="tabs">
-      <button class="tab active" id="tab-login" onclick="setTab('login')">LOGIN</button>
-      <button class="tab" id="tab-reg" onclick="setTab('register')">REGISTRO</button>
+      .field-label {
+        display: block;
+        text-align: left;
+        font-size: 12px;
+        letter-spacing: 2px;
+        color: #00f0ff;
+        text-transform: uppercase;
+        margin: 14px 0 6px 0;
+        font-weight: 700;
+      }
+      .field-input {
+        width: 100%;
+        font-size: 16px;
+        padding: 12px 14px;
+        border-radius: 4px;
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        background: rgba(5, 8, 18, 0.85);
+        color: #fff;
+        font-family: 'Rajdhani', sans-serif;
+      }
+      .field-input:focus { outline: none; border-color: #ff0055; box-shadow: 0 0 12px rgba(255, 0, 85, 0.5); }
+
+      .auth-submit {
+        width: 100%;
+        margin-top: 24px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 15px;
+        padding: 14px 0;
+        border: none;
+        background: linear-gradient(90deg, #ff0055, #ff5500);
+        color: #fff;
+        font-weight: 900;
+        letter-spacing: 3px;
+        cursor: pointer;
+        text-transform: uppercase;
+        box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+      }
+      .auth-submit:hover { filter: brightness(1.2); }
+
+      .auth-error {
+        margin-top: 14px;
+        font-size: 13px;
+        color: #ff3366;
+        min-height: 16px;
+      }
+
+      .link-btn {
+        margin-top: 18px;
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 13px;
+        letter-spacing: 1px;
+        cursor: pointer;
+      }
+      .link-btn:hover { color: #fff; }
+
+      /* ===================== MENÚ PRINCIPAL ===================== */
+      #screen-menu { gap: 18px; text-align: center; }
+      .welcome-pill {
+        border: 1px solid rgba(0, 240, 255, 0.4);
+        background: rgba(0, 240, 255, 0.1);
+        color: #fff;
+        font-size: 15px;
+        padding: 8px 22px;
+        border-radius: 20px;
+        margin-bottom: 10px;
+        letter-spacing: 1px;
+      }
+      .welcome-pill b { color: #00f0ff; }
+
+      .menu-btn {
+        width: 300px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 15px;
+        font-weight: 900;
+        letter-spacing: 3px;
+        padding: 16px 0;
+        border: none;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .menu-btn.primary {
+        background: linear-gradient(90deg, #00f0ff, #0077ff);
+        color: #000;
+        box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
+      }
+      .menu-btn.secondary {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+      }
+      .menu-btn:hover { transform: scale(1.03); }
+
+      #menu-logout {
+        margin-top: 8px;
+        background: none;
+        border: none;
+        color: #cbd5e1;
+        font-size: 12px;
+        letter-spacing: 2px;
+        cursor: pointer;
+        text-transform: uppercase;
+      }
+      #menu-logout:hover { color: #ff0055; }
+
+      /* ===================== TABLA DE PUNTAJES ===================== */
+      #scores-list {
+        max-height: 320px;
+        overflow-y: auto;
+        text-align: left;
+        margin-top: 10px;
+      }
+      .score-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 15px;
+      }
+      .score-pos { width: 34px; color: #ff0055; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+      .score-name { flex: 1; font-weight: bold; }
+      .score-pts { color: #00f0ff; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+
+      /* ===================== PANTALLA DE JUEGO ===================== */
+      #screen-game { gap: 0; }
+      #hud {
+        display: flex;
+        justify-content: space-between;
+        width: 800px;
+        max-width: 96vw;
+        margin-bottom: 10px;
+        background: rgba(10, 15, 30, 0.88);
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        padding: 12px 16px;
+        border-radius: 6px;
+        gap: 12px;
+        box-shadow: 0 0 25px rgba(0,0,0,0.8);
+      }
+      .player-stats { text-align: center; flex: 1; }
+      .player-stats .name-line {
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .player-stats .weapon-line { font-size: 12px; color: #94a3b8; margin-top: 2px; font-weight: 700; }
+      .health-bar-container {
+        background: rgba(15, 23, 42, 0.9);
+        height: 14px;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+      }
+      .health-bar { height: 100%; width: 100%; transition: width 0.15s ease-out; }
+      
+      #map-name {
+        font-family: 'Orbitron', sans-serif;
+        width: 800px;
+        max-width: 96vw;
+        text-align: center;
+        font-size: 13px;
+        color: #00f0ff;
+        margin-bottom: 8px;
+        letter-spacing: 3px;
+        font-weight: bold;
+        text-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+      }
+      
+      #canvas-wrap { position: relative; }
+      canvas#gameCanvas {
+        background: #090d16;
+        border: 2px solid rgba(0, 240, 255, 0.5);
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.95), 0 0 15px rgba(0, 240, 255, 0.2);
+        display: block;
+        max-width: 96vw;
+        border-radius: 4px;
+      }
+      #rol-tag {
+        margin-top: 10px;
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        letter-spacing: 2px;
+        text-align: center;
+        font-size: 13px;
+      }
+      #btn-salir-juego {
+        margin-top: 8px;
+        background: none;
+        border: none;
+        color: #cbd5e1;
+        font-size: 12px;
+        letter-spacing: 2px;
+        cursor: pointer;
+        text-transform: uppercase;
+      }
+      #btn-salir-juego:hover { color: #ff0055; }
+
+      /* BANNER DE RONDA & PODIO */
+      #round-banner {
+        font-family: 'Orbitron', sans-serif;
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-15px);
+        background: rgba(10, 15, 30, 0.95);
+        border: 2px solid #00f0ff;
+        padding: 14px 32px;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: 2px;
+        z-index: 15;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        box-shadow: 0 0 30px rgba(0, 240, 255, 0.4);
+      }
+      #round-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+      #podium-overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(5, 8, 18, 0.94);
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 20;
+      }
+      #podium-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 30px;
+        font-weight: 900;
+        color: #00f0ff;
+        margin-bottom: 30px;
+        text-shadow: 0 0 20px rgba(0, 240, 255, 0.8);
+      }
+      #podium-blocks { display: flex; align-items: flex-end; gap: 24px; }
+      .podium-block { display: flex; flex-direction: column; align-items: center; }
+      .podium-label { font-family: 'Orbitron', sans-serif; font-weight: 900; margin-bottom: 8px; font-size: 15px; }
+      .podium-score { font-size: 13px; color: #94a3b8; margin-bottom: 6px; font-weight: bold; }
+      .podium-pillar {
+        width: 90px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding-top: 10px;
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        font-size: 26px;
+        color: rgba(0, 0, 0, 0.7);
+        border-radius: 4px 4px 0 0;
+      }
+      #podium-restart-msg { margin-top: 28px; font-size: 14px; color: #94a3b8; letter-spacing: 2px; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <!-- CANVAS DE FONDO CON DEMO DE PELEA -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- PANTALLA DE INICIO (LANDING) -->
+    <div id="screen-landing" class="screen active">
+      <div class="arcade-badge">⚡ 4 Players Cyber Arcade ⚡</div>
+      <h1 id="landing-title">
+        <span class="neon-pink">Supreme</span><br />
+        <span class="neon-cyan">Duelist</span>
+      </h1>
+      <div id="landing-subtitle">Stickman Showdown</div>
+      <button id="btn-entrar-landing" class="arcade-btn">▶ ENTRAR ◀</button>
     </div>
 
-    <form id="auth-form" onsubmit="handleSubmit(event)">
-      <div class="form-group">
-        <label>Usuario</label>
-        <input type="text" id="username" required autocomplete="off">
+    <!-- LOGIN / REGISTRO -->
+    <div id="screen-auth" class="screen">
+      <div class="glass-card">
+        <h2>Acceso Arena</h2>
+        <div class="card-sub">Inicia sesión para luchar</div>
+
+        <div class="tabs">
+          <button type="button" id="tab-login" class="tab-btn active">Login</button>
+          <button type="button" id="tab-registro" class="tab-btn">Registro</button>
+        </div>
+
+        <form id="auth-form">
+          <label class="field-label" for="auth-username">Usuario</label>
+          <input id="auth-username" class="field-input" type="text" maxlength="20" autocomplete="username" required />
+
+          <label class="field-label" for="auth-password">Contraseña</label>
+          <input id="auth-password" class="field-input" type="password" maxlength="60" autocomplete="current-password" required />
+
+          <button type="submit" id="auth-submit" class="auth-submit">Entrar →</button>
+          <div id="auth-error" class="auth-error"></div>
+        </form>
+
+        <button id="btn-volver-auth" class="link-btn">← Volver al inicio</button>
       </div>
-      <div class="form-group">
-        <label>Contraseña</label>
-        <input type="password" id="password" required>
-      </div>
-
-      <button type="submit" class="btn-submit" id="btn-text">CREAR CUENTA →</button>
-    </form>
-
-    <div id="error-msg">Error de conexión con el servidor</div>
-
-    <div class="stickmen-decor">
-      <svg class="stickman-svg" viewBox="0 0 50 100">
-        <circle cx="25" cy="15" r="10" stroke="#ff0055" stroke-width="4" fill="none"/>
-        <line x1="25" y1="25" x2="25" y2="60" stroke="#ff0055" stroke-width="4"/>
-        <line x1="25" y1="35" x2="5" y2="20" stroke="#ff0055" stroke-width="4"/>
-        <line x1="25" y1="60" x2="10" y2="95" stroke="#ff0055" stroke-width="4"/>
-      </svg>
-      <svg class="stickman-svg" viewBox="0 0 50 100">
-        <circle cx="25" cy="15" r="10" stroke="#00f0ff" stroke-width="4" fill="none"/>
-        <line x1="25" y1="25" x2="25" y2="60" stroke="#00f0ff" stroke-width="4"/>
-        <line x1="25" y1="35" x2="45" y2="20" stroke="#00f0ff" stroke-width="4"/>
-        <line x1="25" y1="60" x2="40" y2="95" stroke="#00f0ff" stroke-width="4"/>
-      </svg>
     </div>
-  </div>
 
-  <!-- JUEGO IDÉNTICO A LA IMAGEN 1 -->
-  <div id="game-container">
-    <div class="scoreboard" id="scoreboard"></div>
-    <div class="map-title" id="map-name">🗺️ MAPA: Arena Clásica</div>
-    <canvas id="canvas" width="800" height="450"></canvas>
-    <div class="controls-hint" id="controls-label">CONTROLANDO P1 - CONTROLES: WASD / FLECHAS + ESPACIO</div>
-    <button class="btn-abandonar" onclick="location.reload()">🚪 ABANDONAR ARENA</button>
-  </div>
+    <!-- MENÚ PRINCIPAL -->
+    <div id="screen-menu" class="screen">
+      <div class="glass-card" style="width: 380px">
+        <h2>Menú Principal</h2>
+        <div class="welcome-pill">Peleador: <b id="menu-username">Jugador</b></div>
+        <div style="display: flex; flex-direction: column; gap: 14px; align-items: center; margin-top: 15px;">
+          <button id="btn-jugar" class="menu-btn primary">⚔ ENTRAR A COMBATE</button>
+          <button id="btn-puntajes" class="menu-btn secondary">🏆 SALÓN DE LA FAMA</button>
+        </div>
+        <button id="menu-logout">Cerrar Sesión</button>
+      </div>
+    </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    let mode = 'register';
-    let myRole = 1;
-    let keys = { left: false, right: false, up: false, attack: false };
+    <!-- TABLA DE PUNTAJES -->
+    <div id="screen-scores" class="screen">
+      <div class="glass-card">
+        <h2>🏆 Salón de la Fama</h2>
+        <div class="card-sub">Mejores peleadores de la arena</div>
+        <div id="scores-list"></div>
+        <button id="btn-volver-scores" class="link-btn">← Regresar al Menú</button>
+      </div>
+    </div>
 
-    function setTab(m) {
-      mode = m;
-      document.getElementById('tab-login').classList.toggle('active', m === 'login');
-      document.getElementById('tab-reg').classList.toggle('active', m === 'register');
-      document.getElementById('btn-text').innerText = m === 'login' ? 'INICIAR SESIÓN →' : 'CREAR CUENTA →';
-      document.getElementById('error-msg').style.display = 'none';
-    }
+    <!-- PANTALLA DE JUEGO PRINCIPAL -->
+    <div id="screen-game" class="screen">
+      <div id="hud">
+        <div class="player-stats">
+          <div id="p1-name" class="name-line" style="color: #ff0055">P1: <span id="p1-score">0</span></div>
+          <div class="health-bar-container"><div id="p1-bar" class="health-bar" style="background: linear-gradient(90deg, #ff0055, #ff5500);"></div></div>
+          <div id="p1-weapon" class="weapon-line">Espada</div>
+        </div>
+        <div class="player-stats">
+          <div id="p2-name" class="name-line" style="color: #00f0ff">P2: <span id="p2-score">0</span></div>
+          <div class="health-bar-container"><div id="p2-bar" class="health-bar" style="background: linear-gradient(90deg, #00f0ff, #0077ff);"></div></div>
+          <div id="p2-weapon" class="weapon-line">Espada</div>
+        </div>
+        <div class="player-stats">
+          <div id="p3-name" class="name-line" style="color: #00ff66">P3: <span id="p3-score">0</span></div>
+          <div class="health-bar-container"><div id="p3-bar" class="health-bar" style="background: linear-gradient(90deg, #00ff66, #00b33c);"></div></div>
+          <div id="p3-weapon" class="weapon-line">Espada</div>
+        </div>
+        <div class="player-stats">
+          <div id="p4-name" class="name-line" style="color: #ffcc00">P4: <span id="p4-score">0</span></div>
+          <div class="health-bar-container"><div id="p4-bar" class="health-bar" style="background: linear-gradient(90deg, #ffcc00, #ff8800);"></div></div>
+          <div id="p4-weapon" class="weapon-line">Espada</div>
+        </div>
+      </div>
 
-    async function handleSubmit(e) {
-      e.preventDefault();
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      const errorDiv = document.getElementById('error-msg');
+      <div id="map-name">Cargando arena...</div>
 
-      try {
-        const res = await fetch(`/api/${mode}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+      <div id="canvas-wrap">
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        <div id="round-banner"></div>
+        <div id="podium-overlay">
+          <div id="podium-title">🏆 GANADOR DE LA ARENA 🏆</div>
+          <div id="podium-blocks"></div>
+          <div id="podium-restart-msg">Reiniciando combate...</div>
+        </div>
+      </div>
+
+      <div id="rol-tag">Identificando rol en la arena...</div>
+      <button id="btn-salir-juego">🚪 Abandonar Arena</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      // ================================================================
+      //  1. DEMO DE FONDO FLUIDA (CANVAS PRINCIPAL)
+      // ================================================================
+      const bgCanvas = document.getElementById('bg-canvas');
+      const bgCtx = bgCanvas.getContext('2d');
+
+      function resizeBgCanvas() {
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resizeBgCanvas);
+      resizeBgCanvas();
+
+      const demoFighters = [
+        { x: window.innerWidth * 0.25, y: 300, vx: 3, vy: 0, color: '#ff0055', facing: 1, weapon: 'espada', isAttacking: false, attackCooldown: 0 },
+        { x: window.innerWidth * 0.75, y: 300, vx: -3, vy: 0, color: '#00f0ff', facing: -1, weapon: 'pistola', isAttacking: false, attackCooldown: 0 }
+      ];
+
+      function updateDemoFighters() {
+        const floorY = bgCanvas.height - 70;
+        const width = bgCanvas.width;
+
+        demoFighters.forEach((f, idx) => {
+          const other = demoFighters[idx === 0 ? 1 : 0];
+          const dist = other.x - f.x;
+          const absDist = Math.abs(dist);
+
+          f.x += f.vx;
+          f.y += f.vy;
+
+          if (f.y < floorY) {
+            f.vy += 0.6;
+          } else {
+            f.y = floorY;
+            f.vy = 0;
+            if (absDist < 180 && Math.random() < 0.04) {
+              f.vy = -12 - Math.random() * 4;
+            }
+          }
+
+          if (absDist > 60) {
+            f.vx = dist > 0 ? 3.5 : -3.5;
+            f.facing = dist > 0 ? 1 : -1;
+          } else if (Math.random() < 0.05) {
+            f.vx = (Math.random() > 0.5 ? 1 : -1) * 4;
+          }
+
+          if (f.x < 100) { f.x = 100; f.vx = 4; f.facing = 1; }
+          if (f.x > width - 100) { f.x = width - 100; f.vx = -4; f.facing = -1; }
+
+          f.attackCooldown--;
+          if (absDist < 200 && f.attackCooldown <= 0) {
+            f.isAttacking = true;
+            f.attackCooldown = 30 + Math.floor(Math.random() * 20);
+          } else if (f.attackCooldown < 20) {
+            f.isAttacking = false;
+          }
         });
-        const data = await res.json();
+      }
 
-        if (res.ok) {
-          document.getElementById('auth-screen').style.display = 'none';
-          document.getElementById('game-container').style.display = 'flex';
-          socket.emit('setName', username);
-        } else {
-          errorDiv.innerText = data.error || 'Error de autenticación';
-          errorDiv.style.display = 'block';
+      function drawDemoStickman(f) {
+        bgCtx.save();
+        bgCtx.strokeStyle = f.color;
+        bgCtx.fillStyle = f.color;
+        bgCtx.lineWidth = 4;
+        bgCtx.shadowColor = f.color;
+        bgCtx.shadowBlur = 12;
+
+        bgCtx.beginPath();
+        bgCtx.arc(f.x, f.y - 30, 14, 0, Math.PI * 2);
+        bgCtx.fill();
+
+        bgCtx.beginPath();
+        bgCtx.moveTo(f.x, f.y - 16);
+        bgCtx.lineTo(f.x, f.y + 20);
+        bgCtx.stroke();
+
+        bgCtx.beginPath();
+        bgCtx.moveTo(f.x, f.y + 20);
+        bgCtx.lineTo(f.x - 12, f.y + 45);
+        bgCtx.moveTo(f.x, f.y + 20);
+        bgCtx.lineTo(f.x + 12, f.y + 45);
+        bgCtx.stroke();
+
+        const manoX = f.x + f.facing * 18;
+        const manoY = f.y - 5;
+        bgCtx.beginPath();
+        bgCtx.moveTo(f.x, f.y - 10);
+        bgCtx.lineTo(manoX, manoY);
+        bgCtx.stroke();
+
+        bgCtx.restore();
+      }
+
+      function loopBgDemo() {
+        bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+        const floorY = bgCanvas.height - 25;
+        bgCtx.strokeStyle = 'rgba(0, 240, 255, 0.2)';
+        bgCtx.lineWidth = 3;
+        bgCtx.beginPath();
+        bgCtx.moveTo(0, floorY);
+        bgCtx.lineTo(bgCanvas.width, floorY);
+        bgCtx.stroke();
+
+        updateDemoFighters();
+        demoFighters.forEach(drawDemoStickman);
+        requestAnimationFrame(loopBgDemo);
+      }
+      loopBgDemo();
+
+      // ================================================================
+      //  2. LÓGICA DE NAVEGACIÓN Y AUTENTICACIÓN
+      // ================================================================
+      const SCREENS = ['screen-landing', 'screen-auth', 'screen-menu', 'screen-scores', 'screen-game'];
+      function mostrarSolo(id) {
+        SCREENS.forEach((s) => {
+          document.getElementById(s).classList.toggle('active', s === id);
+        });
+      }
+
+      let usuarioActual = null;
+
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.innerText = str;
+        return div.innerHTML;
+      }
+
+      fetch('/api/me')
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((data) => {
+          usuarioActual = data.username;
+          mostrarMenu();
+        })
+        .catch(() => mostrarSolo('screen-landing'));
+
+      function mostrarMenu() {
+        document.getElementById('menu-username').innerText = usuarioActual;
+        mostrarSolo('screen-menu');
+      }
+
+      document.getElementById('btn-entrar-landing').addEventListener('click', () => mostrarSolo('screen-auth'));
+
+      let modoAuth = 'login';
+      const tabLogin = document.getElementById('tab-login');
+      const tabRegistro = document.getElementById('tab-registro');
+      const authSubmitBtn = document.getElementById('auth-submit');
+      const authErrorEl = document.getElementById('auth-error');
+
+      function actualizarTabsAuth() {
+        tabLogin.classList.toggle('active', modoAuth === 'login');
+        tabRegistro.classList.toggle('active', modoAuth === 'registro');
+        authSubmitBtn.innerText = modoAuth === 'login' ? 'Entrar →' : 'Crear cuenta →';
+        authErrorEl.innerText = '';
+      }
+      tabLogin.addEventListener('click', () => { modoAuth = 'login'; actualizarTabsAuth(); });
+      tabRegistro.addEventListener('click', () => { modoAuth = 'registro'; actualizarTabsAuth(); });
+
+      ['auth-username', 'auth-password'].forEach((id) => {
+        const el = document.getElementById(id);
+        el.addEventListener('keydown', (e) => e.stopPropagation());
+        el.addEventListener('keyup', (e) => e.stopPropagation());
+      });
+
+      document.getElementById('auth-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('auth-username').value.trim();
+        const password = document.getElementById('auth-password').value;
+        authErrorEl.innerText = '';
+
+        const endpoint = modoAuth === 'login' ? '/api/login' : '/api/register';
+        try {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            authErrorEl.innerText = data.error || 'Error al autenticar';
+            return;
+          }
+          usuarioActual = data.username;
+          document.getElementById('auth-password').value = '';
+          mostrarMenu();
+        } catch (err) {
+          authErrorEl.innerText = 'Error de conexión con el servidor';
         }
-      } catch (err) {
-        errorDiv.innerText = 'Error de conexión con el servidor';
-        errorDiv.style.display = 'block';
-      }
-    }
-
-    window.addEventListener('keydown', e => {
-      if (['ArrowLeft', 'a', 'A'].includes(e.key)) keys.left = true;
-      if (['ArrowRight', 'd', 'D'].includes(e.key)) keys.right = true;
-      if (['ArrowUp', 'w', 'W'].includes(e.key)) keys.up = true;
-      if (e.code === 'Space') keys.attack = true;
-      socket.emit('input', keys);
-    });
-
-    window.addEventListener('keyup', e => {
-      if (['ArrowLeft', 'a', 'A'].includes(e.key)) keys.left = false;
-      if (['ArrowRight', 'd', 'D'].includes(e.key)) keys.right = false;
-      if (['ArrowUp', 'w', 'W'].includes(e.key)) keys.up = false;
-      if (e.code === 'Space') keys.attack = false;
-      socket.emit('input', keys);
-    });
-
-    socket.on('init', data => {
-      myRole = data.role;
-      document.getElementById('controls-label').innerText = `CONTROLANDO P${myRole} - CONTROLES: WASD / FLECHAS + ESPACIO`;
-    });
-
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-
-    // DIBUJAR ARMA SEGÚN TIPO EN MANOS DEL PERSONAJE
-    function renderizarArma(x, y, dir, arma) {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(dir, 1);
-
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#ffffff';
-      ctx.fillStyle = '#ffffff';
-
-      switch(arma) {
-        case 'Espada':
-          ctx.strokeStyle = '#e0e0e0';
-          ctx.beginPath();
-          ctx.moveTo(10, 0);
-          ctx.lineTo(30, -5); // Hoja brillante
-          ctx.stroke();
-          ctx.fillRect(8, -3, 3, 6); // Guardamanos
-          break;
-
-        case 'Fusil':
-          ctx.fillStyle = '#fbc02d';
-          ctx.fillRect(8, -3, 16, 5); // Cuerpo
-          ctx.fillRect(24, -2, 10, 2); // Cañón
-          ctx.fillRect(12, 2, 4, 6); // Cargador
-          break;
-
-        case 'Subfusil':
-          ctx.fillStyle = '#ff9800';
-          ctx.fillRect(8, -4, 12, 6); // Compacto
-          ctx.fillRect(20, -2, 6, 2); // Cañón
-          ctx.fillRect(14, 2, 3, 7); // Cargador largo
-          break;
-
-        case 'Escopeta':
-          ctx.fillStyle = '#e91e63';
-          ctx.fillRect(6, -2, 18, 5); // Cañón doble ancho
-          ctx.fillStyle = '#795548';
-          ctx.fillRect(0, 0, 8, 4); // Culata de madera
-          break;
-
-        case 'Francotirador':
-          ctx.fillStyle = '#00e5ff';
-          ctx.fillRect(6, -2, 14, 4); // Cuerpo
-          ctx.fillRect(20, -1, 16, 2); // Cañón muy largo
-          ctx.fillRect(12, -5, 6, 2); // Mira telescópica
-          break;
-
-        case 'Gancho':
-          ctx.fillStyle = '#00e676';
-          ctx.fillRect(8, -3, 10, 5);
-          ctx.beginPath();
-          ctx.arc(20, -1, 4, 0, Math.PI * 1.5); // Garfio del gancho
-          ctx.stroke();
-          break;
-      }
-      ctx.restore();
-    }
-
-    socket.on('estadoJuego', estado => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      document.getElementById('map-name').innerText = `🗺️ MAPA: ${estado.mapa.nombre}`;
-
-      // 1. DIBUJAR PLATAFORMAS
-      ctx.fillStyle = '#182232';
-      estado.mapa.plataformas.forEach(plat => {
-        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.strokeStyle = '#17a2b8';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(plat.x, plat.y, plat.w, plat.h);
       });
 
-      // 2. DIBUJAR ARMAS EN EL SUELO (BOLITAS BRILLANTES CADA 5s)
-      (estado.itemsArmas || []).forEach(item => {
-        ctx.beginPath();
-        ctx.arc(item.x, item.y, 9, 0, Math.PI * 2);
-        ctx.fillStyle = item.color;
-        ctx.shadowColor = item.color;
-        ctx.shadowBlur = 10;
-        ctx.fill();
-        ctx.shadowBlur = 0;
+      document.getElementById('btn-volver-auth').addEventListener('click', () => mostrarSolo('screen-landing'));
 
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(item.arma, item.x, item.y - 13);
+      document.getElementById('btn-jugar').addEventListener('click', () => {
+        mostrarSolo('screen-game');
+        iniciarJuego();
       });
 
-      // 3. DIBUJAR PROYECTILES Y DISPAROS
-      (estado.proyectiles || []).forEach(p => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.tipo === 'escopeta' ? 3 : 4, 0, Math.PI * 2);
-        ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color;
+      document.getElementById('btn-puntajes').addEventListener('click', async () => {
+        const lista = document.getElementById('scores-list');
+        lista.innerHTML = '<div style="color:#94a3b8; padding:20px; text-align:center;">Cargando tabla...</div>';
+        mostrarSolo('screen-scores');
+        try {
+          const res = await fetch('/api/ganadores');
+          const datos = await res.json();
+          if (!datos.length) {
+            lista.innerHTML = '<div style="color:#94a3b8; padding:20px; text-align:center;">No hay ganadores registrados</div>';
+            return;
+          }
+          lista.innerHTML = datos
+            .map(
+              (g, i) =>
+                '<div class="score-row">' +
+                '<span class="score-pos">#' + (i + 1) + '</span>' +
+                '<span class="score-name">' + escapeHtml(g.nombre) + '</span>' +
+                '<span class="score-pts">' + g.puntuacion + ' PTS</span>' +
+                '</div>'
+            )
+            .join('');
+        } catch (err) {
+          lista.innerHTML = '<div style="color:#ff0055; padding:20px; text-align:center;">Error al consultar servidor</div>';
+        }
+      });
+
+      document.getElementById('btn-volver-scores').addEventListener('click', () => mostrarSolo('screen-menu'));
+
+      document.getElementById('menu-logout').addEventListener('click', async () => {
+        try { await fetch('/api/logout', { method: 'POST' }); } catch (err) {}
+        usuarioActual = null;
+        if (socket) { socket.disconnect(); socket = null; }
+        mostrarSolo('screen-landing');
+      });
+
+      document.getElementById('btn-salir-juego').addEventListener('click', () => {
+        if (socket) { socket.disconnect(); socket = null; }
+        mostrarSolo('screen-menu');
+      });
+
+      // ================================================================
+      //  3. MOTOR DE RENDEREADO Y JUEGO CANVA
+      // ================================================================
+      let socket = null;
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const FLOOR_Y = 400;
+      const CANVAS_WIDTH = 800;
+      const CANVAS_HEIGHT = 500;
+
+      let miId = null;
+      let jugadores = {};
+      let weaponPickups = {};
+      let bullets = {};
+      let mapIndex = 0;
+      let particles = [];
+      let screenShakeTime = 0;
+
+      const keys = { left: false, right: false, up: false, attack: false };
+
+      const MAPS = [
+        { name: 'Arena Clásica', bg: '#090d16', floorColor: '#1e293b', floorSegments: [[0, 800]], platforms: [] },
+        { name: 'Templo de Piedra', bg: '#171210', floorColor: '#44403c', floorSegments: [[0, 800]], platforms: [{ x: 140, y: 300, width: 150, height: 16 }, { x: 510, y: 300, width: 150, height: 16 }] },
+        { name: 'Plataformas Flotantes', bg: '#0b1329', floorColor: '#334155', floorSegments: [[0, 800]], platforms: [{ x: 70, y: 320, width: 120, height: 16 }, { x: 340, y: 250, width: 120, height: 16 }, { x: 610, y: 320, width: 120, height: 16 }] },
+        { name: 'Volcán Cyber', bg: '#230b0b', floorColor: '#991b1b', floorSegments: [[0, 800]], platforms: [{ x: 250, y: 310, width: 300, height: 16 }] },
+        { name: 'Hielo Eterno', bg: '#0a192f', floorColor: '#38bdf8', floorSegments: [[0, 800]], platforms: [{ x: 90, y: 280, width: 100, height: 16 }, { x: 610, y: 280, width: 100, height: 16 }, { x: 350, y: 340, width: 100, height: 16 }] }
+      ];
+
+      const WEAPON_VISUALS = {
+        espada: { name: 'Espada', color: '#e2e8f0', accent: '#00f0ff' },
+        espada_larga: { name: 'Espadón', color: '#f8fafc', accent: '#ff0055' },
+        pistola: { name: 'Pistola', color: '#475569', accent: '#ffcc00' },
+        fusil_asalto: { name: 'Fusil Asalto', color: '#334155', accent: '#00ff66' },
+        escopeta: { name: 'Escopeta', color: '#78350f', accent: '#ff8800' },
+        francotirador: { name: 'Sniper', color: '#1e293b', accent: '#ff0055' },
+        gancho: { name: 'Gancho', color: '#64748b', accent: '#00f0ff' },
+      };
+
+      const PICKUP_LETTER = { espada: 'E', espada_larga: 'S', pistola: 'P', fusil_asalto: 'F', escopeta: 'X', francotirador: 'R', gancho: 'G' };
+
+      window.addEventListener('keydown', (e) => {
+        if (!socket) return;
+        let changed = false;
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { keys.left = true; changed = true; }
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { keys.right = true; changed = true; }
+        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { keys.up = true; changed = true; }
+        if (e.key === ' ' || e.key === 'e' || e.key === 'E') { keys.attack = true; changed = true; }
+        if (changed) socket.emit('input', keys);
+      });
+
+      window.addEventListener('keyup', (e) => {
+        if (!socket) return;
+        let changed = false;
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { keys.left = false; changed = true; }
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { keys.right = false; changed = true; }
+        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { keys.up = false; changed = true; }
+        if (e.key === ' ' || e.key === 'e' || e.key === 'E') { keys.attack = false; changed = true; }
+        if (changed) socket.emit('input', keys);
+      });
+
+      function emitParticle(x, y, color, vx, vy, life) {
+        particles.push({ x, y, color, vx, vy, life, maxLife: life });
+      }
+
+      function triggerShake(frames) {
+        screenShakeTime = frames;
+      }
+
+      function iniciarJuego() {
+        if (socket) return;
+        socket = io();
+
+        socket.on('init', (data) => {
+          miId = data.id;
+          socket.emit('setName', usuarioActual || 'Jugador');
+        });
+
+        socket.on('estadoJuego', (estado) => {
+          jugadores = estado.players;
+          weaponPickups = estado.weaponPickups;
+          bullets = estado.bullets || {};
+          mapIndex = estado.mapIndex;
+
+          document.getElementById('map-name').innerText = '🗺️ ARENA: ' + (MAPS[mapIndex] ? MAPS[mapIndex].name : '');
+
+          for (let role = 1; role <= 4; role++) {
+            let p = Object.values(jugadores).find((j) => j.role === role);
+            let bar = document.getElementById('p' + role + '-bar');
+            let score = document.getElementById('p' + role + '-score');
+            let weaponLabel = document.getElementById('p' + role + '-weapon');
+            if (p) {
+              bar.style.width = Math.max(p.health, 0) + '%';
+              score.innerText = p.score;
+              const wv = WEAPON_VISUALS[p.weapon] || WEAPON_VISUALS.espada;
+              weaponLabel.innerText = wv.name;
+            } else {
+              bar.style.width = '0%';
+              weaponLabel.innerText = '';
+            }
+          }
+
+          const miUsuario = jugadores[miId];
+          const rolTag = document.getElementById('rol-tag');
+          if (miUsuario) {
+            if (miUsuario.role >= 1 && miUsuario.role <= 4) {
+              rolTag.innerText = 'PELEADOR P' + miUsuario.role + ' — CONTROLES: WASD / FLECHAS + ESPACIO';
+              rolTag.style.color = miUsuario.color;
+            } else {
+              rolTag.innerText = 'SALA LLENA — MODO ESPECTADOR';
+              rolTag.style.color = '#ffcc00';
+            }
+          }
+        });
+
+        const roundBanner = document.getElementById('round-banner');
+        let roundBannerTimeout = null;
+
+        socket.on('rondaGanada', (data) => {
+          triggerShake(12);
+          if (roundBannerTimeout) clearTimeout(roundBannerTimeout);
+          const nombre = data.name ? data.name : 'P' + data.role;
+          roundBanner.innerText = '🏅 ' + nombre + ' GANÓ LA RONDA';
+          roundBanner.style.borderColor = data.color || '#00f0ff';
+          roundBanner.style.color = data.color || '#00f0ff';
+          roundBanner.classList.add('show');
+        });
+
+        socket.on('nuevaRonda', () => {
+          roundBannerTimeout = setTimeout(() => roundBanner.classList.remove('show'), 800);
+        });
+
+        socket.on('finDePartida', (data) => {
+          roundBanner.classList.remove('show');
+          mostrarPodio(data.podium);
+        });
+
+        socket.on('nuevaPartida', () => {
+          document.getElementById('podium-overlay').style.display = 'none';
+        });
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      function mostrarPodio(podium) {
+        const overlay = document.getElementById('podium-overlay');
+        const blocks = document.getElementById('podium-blocks');
+        blocks.innerHTML = '';
+
+        const orden = [1, 0, 2];
+        const alturas = [100, 140, 70];
+        const medallas = ['🥈', '🥇', '🥉'];
+
+        orden.forEach((idxPodio, posVisual) => {
+          const jugador = podium[idxPodio];
+          const div = document.createElement('div');
+          div.className = 'podium-block';
+
+          if (jugador) {
+            div.innerHTML =
+              '<div class="podium-label" style="color:' + jugador.color + '">' + medallas[posVisual] + ' ' + escapeHtml(jugador.name || 'P' + jugador.role) + '</div>' +
+              '<div class="podium-score">' + jugador.score + ' pts</div>' +
+              '<div class="podium-pillar" style="height:' + alturas[posVisual] + 'px; background:' + jugador.color + ';">' + (idxPodio + 1) + '</div>';
+          } else {
+            div.innerHTML =
+              '<div class="podium-label" style="color:#666">--</div>' +
+              '<div class="podium-score">&nbsp;</div>' +
+              '<div class="podium-pillar" style="height:' + alturas[posVisual] + 'px; background:#333;">' + (idxPodio + 1) + '</div>';
+          }
+          blocks.appendChild(div);
+        });
+
+        overlay.style.display = 'flex';
+      }
+
+      // ================= RENDERIZADO DE STICKMAN MEJORADO =================
+      function drawWeapon(weaponKey, manoX, manoY, facing, isAttacking) {
+        const visual = WEAPON_VISUALS[weaponKey] || WEAPON_VISUALS.espada;
+        ctx.save();
+        ctx.translate(manoX, manoY);
+        ctx.scale(facing, 1);
+        ctx.rotate(isAttacking ? -0.2 : 0.35);
+
+        ctx.strokeStyle = visual.accent;
+        ctx.fillStyle = visual.color;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = visual.accent;
         ctx.shadowBlur = 8;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      });
 
-      // 4. DIBUJAR EFECTOS DE CORTE (ESPADA)
-      (estado.efectosAtaque || []).forEach(ef => {
-        ctx.beginPath();
-        ctx.arc(ef.x, ef.y, 25, ef.facing === 1 ? -Math.PI / 3 : Math.PI * 0.7, ef.facing === 1 ? Math.PI / 3 : Math.PI * 1.3);
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 4;
-        ctx.stroke();
-      });
+        if (weaponKey.includes('espada')) {
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(weaponKey === 'espada_larga' ? 42 : 32, 0);
+          ctx.stroke();
 
-      // 5. SCOREBOARD SUPERIOR Y JUGADORES
-      const scoreboard = document.getElementById('scoreboard');
-      scoreboard.innerHTML = '';
-
-      // Crear slots para P1, P2, P3, P4
-      for (let r = 1; r <= 4; r++) {
-        const p = Object.values(estado.players).find(x => x.role === r);
-        const card = document.createElement('div');
-        card.className = 'p-card';
-
-        if (p) {
-          card.innerHTML = `
-            <div style="color: ${p.color}; font-weight: bold;">P${p.role}: ${p.score}</div>
-            <div class="hp-bar"><div class="hp-fill" style="width: ${p.health}%; background: ${p.color}"></div></div>
-            <div style="color: #8899a6; font-size: 10px; margin-top: 3px;">${p.arma}</div>
-          `;
+          // Estela de golpe al atacar
+          if (isAttacking) {
+            ctx.fillStyle = visual.accent;
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            ctx.arc(0, 0, weaponKey === 'espada_larga' ? 46 : 36, -Math.PI / 3, Math.PI / 3);
+            ctx.lineTo(0, 0);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+          }
         } else {
-          card.innerHTML = `
-            <div style="color: #445566; font-weight: bold;">P${r}: -</div>
-            <div class="hp-bar"><div class="hp-fill" style="width: 0%;"></div></div>
-            <div style="color: #445566; font-size: 10px; margin-top: 3px;">Esperando...</div>
-          `;
+          ctx.fillRect(0, -3, 16, 6);
+          if (isAttacking) {
+            // Muzzle flash
+            emitParticle(manoX + facing * 18, manoY, visual.accent, facing * 3, (Math.random() - 0.5) * 2, 6);
+          }
         }
-        scoreboard.appendChild(card);
+        ctx.restore();
       }
 
-      // Dibujar los Monitos Stickmen
-      Object.values(estado.players).forEach(p => {
-        if (p.role > 4) return;
+      function drawPlayer(p) {
+        ctx.save();
+        ctx.strokeStyle = p.color;
+        ctx.fillStyle = p.color;
+        ctx.lineWidth = 3.5;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 10;
+
+        const facingDir = p.facing === 1 ? 1 : -1;
+        const speedX = p.vx || 0;
+        const speedY = p.vy || 0;
+        const isMoving = Math.abs(speedX) > 0.5;
+        const isJumping = Math.abs(speedY) > 0.5;
 
         // Cabeza
-        ctx.strokeStyle = p.color;
-        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(p.x, p.y - 25, 8, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.arc(p.x, p.y - 20, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Visor/Ojo del stickman
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(p.x + facingDir * 4, p.y - 22, 2.5, 0, Math.PI * 2);
+        ctx.fill();
 
         // Cuerpo
         ctx.beginPath();
-        ctx.moveTo(p.x, p.y - 17);
-        ctx.lineTo(p.x, p.y);
+        ctx.moveTo(p.x, p.y - 10);
+        ctx.lineTo(p.x, p.y + 15);
         ctx.stroke();
 
-        // Piernas
+        // Piernas animadas
+        const time = Date.now() * 0.015;
+        let leg1Offset = 0;
+        let leg2Offset = 0;
+
+        if (isJumping) {
+          leg1Offset = -8;
+          leg2Offset = 8;
+        } else if (isMoving) {
+          leg1Offset = Math.sin(time) * 12;
+          leg2Offset = -Math.sin(time) * 12;
+
+          // Polvo al correr
+          if (Math.random() < 0.2) {
+            emitParticle(p.x, p.y + 30, 'rgba(255,255,255,0.4)', -facingDir * 1.5, -Math.random(), 10);
+          }
+        }
+
         ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x - 7, p.y + 15);
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x + 7, p.y + 15);
+        // Pierna 1
+        ctx.moveTo(p.x, p.y + 15);
+        ctx.lineTo(p.x - 6 + leg1Offset, p.y + 32);
+        // Pierna 2
+        ctx.moveTo(p.x, p.y + 15);
+        ctx.lineTo(p.x + 6 + leg2Offset, p.y + 32);
         ctx.stroke();
 
-        // Brazos
+        // Mano
+        const manoX = p.x + facingDir * 12;
+        const manoY = p.y - 2;
         ctx.beginPath();
-        ctx.moveTo(p.x, p.y - 12);
-        ctx.lineTo(p.x + (p.facing * 10), p.y - 8);
+        ctx.moveTo(p.x, p.y - 5);
+        ctx.lineTo(manoX, manoY);
         ctx.stroke();
 
-        // Dibujar Arma detallada
-        renderizarArma(p.x, p.y - 10, p.facing, p.arma);
+        drawWeapon(p.weapon, manoX, manoY, facingDir, p.isAttacking);
 
         // Nombre encima
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 11px sans-serif';
+        ctx.font = '700 12px Rajdhani, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(p.name, p.x, p.y - 38);
-      });
-    });
-  </script>
-</body>
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = '#000';
+        ctx.fillText(p.name || 'P' + p.role, p.x, p.y - 36);
+        ctx.restore();
+      }
+
+      function gameLoop() {
+        if (!socket) return;
+
+        ctx.save();
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        // Sacudida de pantalla
+        if (screenShakeTime > 0) {
+          screenShakeTime--;
+          ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
+        }
+
+        const currentMap = MAPS[mapIndex] || MAPS[0];
+
+        // Fondo Mapa
+        ctx.fillStyle = currentMap.bg;
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        // Rejilla Cyberpunk sutil
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < CANVAS_WIDTH; x += 40) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT); ctx.stroke();
+        }
+
+        // Suelo y Plataformas
+        ctx.fillStyle = currentMap.floorColor;
+        ctx.shadowColor = currentMap.floorColor;
+        ctx.shadowBlur = 12;
+
+        if (currentMap.floorSegments) {
+          currentMap.floorSegments.forEach(([start, end]) => {
+            ctx.fillRect(start, FLOOR_Y, end - start, CANVAS_HEIGHT - FLOOR_Y);
+          });
+        }
+
+        if (currentMap.platforms) {
+          currentMap.platforms.forEach((plat) => {
+            ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+          });
+        }
+        ctx.shadowBlur = 0;
+
+        // Cajas de Armas
+        Object.values(weaponPickups).forEach((pickup) => {
+          ctx.save();
+          ctx.fillStyle = '#00f0ff';
+          ctx.shadowColor = '#00f0ff';
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(pickup.x, pickup.y, 12, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#000';
+          ctx.font = '900 13px Orbitron, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(PICKUP_LETTER[pickup.type] || '?', pickup.x, pickup.y);
+          ctx.restore();
+        });
+
+        // Balas y proyectiles
+        Object.values(bullets).forEach((b) => {
+          ctx.save();
+          ctx.fillStyle = '#ff0055';
+          ctx.shadowColor = '#ff0055';
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Estela de bala
+          emitParticle(b.x, b.y, 'rgba(255, 0, 85, 0.5)', -b.vx * 0.2, 0, 5);
+          ctx.restore();
+        });
+
+        // Partículas
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const pt = particles[i];
+          pt.x += pt.vx;
+          pt.y += pt.vy;
+          pt.life--;
+
+          ctx.save();
+          ctx.fillStyle = pt.color;
+          ctx.globalAlpha = Math.max(pt.life / pt.maxLife, 0);
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          if (pt.life <= 0) particles.splice(i, 1);
+        }
+
+        // Jugadores (Corregida la validación de estado con health > 0)
+        Object.values(jugadores).forEach((p) => {
+          if (p.health > 0) drawPlayer(p);
+        });
+
+        ctx.restore();
+        requestAnimationFrame(gameLoop);
+      }
+    </script>
+  </body>
 </html>
