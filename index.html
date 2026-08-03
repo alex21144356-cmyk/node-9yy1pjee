@@ -630,35 +630,6 @@
       }
     }
 
-    class WeaponCRUD {
-      constructor() {
-        this.weapons = JSON.parse(localStorage.getItem('cyber_weapons') || JSON.stringify([
-          { id: 1, name: 'Sable Cyber', damage: 15 },
-          { id: 2, name: 'Lazo Gancho', damage: 0 }
-        ]));
-      }
-      create(name, damage) {
-        this.weapons.push({ id: Date.now(), name, damage });
-        this.save();
-      }
-      read() { return this.weapons; }
-      update(id, newName, newDamage) {
-        this.weapons = this.weapons.map(w => w.id === id ? { ...w, name: newName, damage: newDamage } : w);
-        this.save();
-      }
-      delete(id) {
-        this.weapons = this.weapons.filter(w => w.id !== id);
-        this.save();
-      }
-      save() { localStorage.setItem('cyber_weapons', JSON.stringify(this.weapons)); }
-    }
-    const weaponManager = new WeaponCRUD();
-
-    function calcularTrayectoriaRecursiva(x, y, vx, vy, pasosRestantes) {
-      if (pasosRestantes <= 0) return { x, y };
-      return calcularTrayectoriaRecursiva(x + vx, y + vy + 0.55, vx * 0.9, vy * 0.9, pasosRestantes - 1);
-    }
-
     // LISTA DE MAPAS / ARENAS ROTATIVAS
     const maps = [
       {
@@ -833,7 +804,7 @@
       showScreen('screen-game');
       document.getElementById('podium-overlay').style.display = 'none';
 
-      // Rotar al siguiente mapa automáticamente
+      // Rotación automática de mapas
       currentMapIndex = (currentMapIndex + 1) % maps.length;
       let selectedMap = maps[currentMapIndex];
 
