@@ -155,6 +155,7 @@
       canvas#gameCanvas {
         background: #0d111a;
         border: 2px solid #00f0ff;
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
       }
     </style>
   </head>
@@ -259,7 +260,6 @@
 
       document.getElementById('auth-form').onsubmit = async function(e) {
         e.preventDefault();
-        
         const username = document.getElementById('auth-username').value.trim();
         const password = document.getElementById('auth-password').value.trim();
 
@@ -269,7 +269,6 @@
         }
 
         authError.innerText = 'Conectando...';
-
         const endpoint = modoAuth === 'login' ? '/api/login' : '/api/register';
 
         try {
@@ -278,7 +277,6 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
           });
-
           const data = await res.json();
 
           if (!res.ok) {
@@ -291,7 +289,6 @@
           document.getElementById('auth-password').value = '';
           authError.innerText = '';
           cambiarPantalla('screen-menu');
-
         } catch (err) {
           authError.innerText = 'Error de respuesta del servidor';
         }
@@ -340,9 +337,123 @@
         cambiarPantalla('screen-menu');
       };
 
+      // RENDERIZADO DEL JUEGO
       let socket = null;
       const canvas = document.getElementById('gameCanvas');
       const ctx = canvas.getContext('2d');
+      let animTick = 0;
+
+      function dibujarStickman(x, y, color, nombre, movimiento) {
+        ctx.save();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = color || '#00f0ff';
+        ctx.fillStyle = color || '#00f0ff';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = color || '#00f0ff';
+
+        // Cabeza
+        ctx.beginPath();
+        ctx.arc(x, y - 45, 12, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Ojos
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x + 3, y - 47, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Torso
+        ctx.beginPath();
+        ctx.moveTo(x, y - 33);
+        ctx.lineTo(x, y - 10);
+        ctx.stroke();
+
+        const swing = movimiento ? Math.sin(animTick * 0.3) * 12 : 0;
+
+        // Brazos
+        ctx.beginPath();
+        ctx.moveTo(x, y - 28);
+        ctx.lineTo(x - 12 + swing, y - 15);
+        ctx.moveTo(x, y - 28);
+        ctx.lineTo(x + 12 - swing, y - 15);
+        ctx.stroke();
+
+        // Piernas
+        ctx.beginPath();
+        ctx.moveTo(x, y - 10);
+        ctx.lineTo(x - 10 - swing, y);
+        ctx.moveTo(x, y - 10);
+        ctx.lineTo(x + 10 + swing, y);
+        ctx.stroke();
+
+        // Etiqueta Nombre
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(x - 40, y - 72, 80, 18);
+        ctx.strokeStyle = color || '#00f0ff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 40, y - 72, 80, 18);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(nombre, x, y - 59);
+
+        ctx.restore();
+      }
+
+      function dibujarEscenario() {
+        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grad.addColorStop(0, '#050714');
+        grad.addColorStop(1, '#0f172a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Cuadricula Cyberpunk
+        ctx.strokeStyle = 'rgba(0, 240, 255, 0.05)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < canvas.width; x += 40) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height; y += 40) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+        }
+
+        // Suelo Principal
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(0, 390, canvas.width, 110);
+
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#00f0ff';
+        ctx.beginPath();
+        ctx.moveTo(0, 390);
+        ctx.lineTo(canvas.width, 390);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Plataforma Izquierda
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = '#ff0055';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#ff0055';
+        ctx.fillRect(100, 260, 180, 15);
+        ctx.strokeRect(100, 260, 180, 15);
+
+        // Plataforma Derecha
+        ctx.fillRect(520, 260, 180, 15);
+        ctx.strokeRect(520, 260, 180, 15);
+
+        // Plataforma Central
+        ctx.strokeStyle = '#00ff66';
+        ctx.shadowColor = '#00ff66';
+        ctx.fillRect(320, 170, 160, 15);
+        ctx.strokeRect(320, 170, 160, 15);
+        ctx.shadowBlur = 0;
+      }
+
+      const teclas = { left: false, right: false, up: false };
 
       function iniciarSocket() {
         if (socket) socket.disconnect();
@@ -353,39 +464,31 @@
         });
 
         socket.on('estadoJuego', (estado) => {
-          ctx.fillStyle = '#0d111a';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(0, 400, canvas.width, 100);
+          animTick++;
+          dibujarEscenario();
 
           if (estado.players) {
             Object.values(estado.players).forEach(p => {
-              ctx.fillStyle = p.color || '#00f0ff';
-              ctx.beginPath();
-              ctx.arc(p.x, p.y - 20, 10, 0, Math.PI * 2);
-              ctx.fill();
-
-              ctx.strokeStyle = p.color || '#00f0ff';
-              ctx.lineWidth = 3;
-              ctx.beginPath();
-              ctx.moveTo(p.x, p.y - 10);
-              ctx.lineTo(p.x, p.y + 10);
-              ctx.stroke();
-
-              ctx.fillStyle = '#ffffff';
-              ctx.font = '12px sans-serif';
-              ctx.textAlign = 'center';
-              ctx.fillText(p.name, p.x, p.y - 35);
+              const estaMoviendose = !p.enSuelo || teclas.left || teclas.right;
+              dibujarStickman(p.x, p.y, p.color, p.name, estaMoviendose);
             });
           }
         });
 
         window.onkeydown = function(e) {
           if (!socket) return;
-          if (['ArrowLeft', 'a', 'A'].includes(e.key)) socket.emit('input', { left: true });
-          if (['ArrowRight', 'd', 'D'].includes(e.key)) socket.emit('input', { right: true });
-          if (['ArrowUp', 'w', 'W'].includes(e.key)) socket.emit('input', { up: true });
+          if (['ArrowLeft', 'a', 'A'].includes(e.key)) teclas.left = true;
+          if (['ArrowRight', 'd', 'D'].includes(e.key)) teclas.right = true;
+          if (['ArrowUp', 'w', 'W'].includes(e.key)) teclas.up = true;
+          socket.emit('input', teclas);
+        };
+
+        window.onkeyup = function(e) {
+          if (!socket) return;
+          if (['ArrowLeft', 'a', 'A'].includes(e.key)) teclas.left = false;
+          if (['ArrowRight', 'd', 'D'].includes(e.key)) teclas.right = false;
+          if (['ArrowUp', 'w', 'W'].includes(e.key)) teclas.up = false;
+          socket.emit('input', teclas);
         };
       }
     </script>
