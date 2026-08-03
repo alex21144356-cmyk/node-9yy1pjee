@@ -1,200 +1,393 @@
-<script src="/socket.io/socket.io.js"></script>
-<script>
-  // ================================================================
-  // 1. CONTROL DE PANTALLAS (NAVEGACION)
-  // ================================================================
-  const SCREENS = ['screen-landing', 'screen-auth', 'screen-menu', 'screen-scores', 'screen-game'];
-  
-  function mostrarSolo(id) {
-    SCREENS.forEach((s) => {
-      const el = document.getElementById(s);
-      if (el) el.classList.toggle('active', s === id);
-    });
-  }
-
-  let usuarioActual = null;
-
-  // Boton inicial de la pantalla principal (Landing) para ir al Login
-  document.getElementById('btn-entrar-landing').addEventListener('click', () => {
-    mostrarSolo('screen-auth');
-  });
-
-  // Alternar entre pestañas Login y Registro
-  let modoAuth = 'login';
-  const tabLogin = document.getElementById('tab-login');
-  const tabRegistro = document.getElementById('tab-registro');
-  const authSubmitBtn = document.getElementById('auth-submit');
-  const authErrorEl = document.getElementById('auth-error');
-
-  tabLogin.addEventListener('click', () => {
-    modoAuth = 'login';
-    tabLogin.classList.add('active');
-    tabRegistro.classList.remove('active');
-    authSubmitBtn.innerText = 'Entrar →';
-    authErrorEl.innerText = '';
-  });
-
-  tabRegistro.addEventListener('click', () => {
-    modoAuth = 'registro';
-    tabRegistro.classList.add('active');
-    tabLogin.classList.remove('active');
-    authSubmitBtn.innerText = 'Crear cuenta →';
-    authErrorEl.innerText = '';
-  });
-
-  document.getElementById('btn-volver-auth').addEventListener('click', () => {
-    mostrarSolo('screen-landing');
-  });
-
-  // ================================================================
-  // 2. LOGICA DE INICIO DE SESION Y REGISTRO (CONEXION AL BACKEND)
-  // ================================================================
-  document.getElementById('auth-form').addEventListener('submit', async (e) => {
-    e.preventDefault(); // Previene el recargo de la pagina
-    
-    const username = document.getElementById('auth-username').value.trim();
-    const password = document.getElementById('auth-password').value.trim();
-    authErrorEl.innerText = 'Procesando...';
-
-    if (!username || !password) {
-      authErrorEl.innerText = 'Ingresa usuario y contrasena';
-      return;
-    }
-
-    const endpoint = modoAuth === 'login' ? '/api/login' : '/api/register';
-
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        authErrorEl.innerText = data.error || 'Error en la solicitud';
-        return;
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Stickman — Arcade Edition</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #05070a;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #ffffff;
+        font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+        overflow: hidden;
       }
 
-      // Si fue exitoso guardamos usuario y pasamos al menu
-      usuarioActual = data.username;
-      document.getElementById('menu-username').innerText = usuarioActual;
-      document.getElementById('auth-password').value = '';
-      authErrorEl.innerText = '';
-      mostrarSolo('screen-menu');
-
-    } catch (err) {
-      authErrorEl.innerText = 'Error de conexion con el servidor';
-    }
-  });
-
-  // ================================================================
-  // 3. NAVEGACION DENTRO DEL MENU PRINCIPAL
-  // ================================================================
-  document.getElementById('btn-jugar').addEventListener('click', () => {
-    mostrarSolo('screen-game');
-    iniciarJuego();
-  });
-
-  document.getElementById('btn-puntajes').addEventListener('click', async () => {
-    const lista = document.getElementById('scores-list');
-    lista.innerHTML = '<div style="color:#a0aec0; padding:10px;">Cargando...</div>';
-    mostrarSolo('screen-scores');
-
-    try {
-      const res = await fetch('/api/ganadores');
-      const datos = await res.json();
-      
-      if (!datos.length) {
-        lista.innerHTML = '<div style="color:#a0aec0; padding:10px;">Sin puntajes aun</div>';
-        return;
+      .screen {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        z-index: 10;
+      }
+      .screen.active {
+        display: flex !important;
       }
 
-      lista.innerHTML = datos.map((g, i) => `
-        <div class="score-row">
-          <span class="score-pos">#${i + 1}</span>
-          <span class="score-name">${g.nombre}</span>
-          <span class="score-pts">${g.puntuacion} pts</span>
+      #screen-landing {
+        gap: 20px;
+        text-align: center;
+      }
+
+      .arcade-badge {
+        background: linear-gradient(90deg, #ff0055, #ff5500);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 4px;
+        padding: 6px 20px;
+        text-transform: uppercase;
+      }
+
+      #landing-title {
+        font-size: 50px;
+        font-weight: 900;
+        margin: 0;
+        text-transform: uppercase;
+        color: #00f0ff;
+        text-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+      }
+
+      .arcade-btn {
+        background: linear-gradient(135deg, #00f0ff 0%, #0077ff 100%);
+        color: #000;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: 3px;
+        padding: 15px 40px;
+        border: none;
+        cursor: pointer;
+        text-transform: uppercase;
+      }
+
+      .glass-card {
+        width: 380px;
+        max-width: 90vw;
+        background: rgba(10, 14, 26, 0.9);
+        border: 2px solid rgba(0, 240, 255, 0.3);
+        padding: 30px;
+        text-align: center;
+      }
+
+      .tabs {
+        display: flex;
+        margin-bottom: 20px;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .tab-btn {
+        flex: 1;
+        background: none;
+        border: none;
+        color: #718096;
+        font-weight: bold;
+        padding: 10px 0;
+        cursor: pointer;
+        text-transform: uppercase;
+      }
+
+      .tab-btn.active {
+        color: #ff0055;
+        border-bottom: 2px solid #ff0055;
+      }
+
+      .field-label {
+        display: block;
+        text-align: left;
+        font-size: 11px;
+        color: #00f0ff;
+        margin: 10px 0 5px 0;
+      }
+
+      .field-input {
+        width: 100%;
+        font-size: 14px;
+        padding: 10px;
+        background: #05080f;
+        border: 1px solid #00f0ff;
+        color: #fff;
+      }
+
+      .auth-submit {
+        width: 100%;
+        margin-top: 20px;
+        padding: 12px 0;
+        background: #ff0055;
+        color: #fff;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+      }
+
+      .auth-error {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #ff3366;
+        min-height: 15px;
+      }
+
+      .menu-btn {
+        width: 100%;
+        padding: 12px 0;
+        margin: 8px 0;
+        border: none;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .menu-btn.primary { background: #00f0ff; color: #000; }
+      .menu-btn.secondary { background: #1e293b; color: #fff; }
+
+      .score-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px;
+        border-bottom: 1px solid #334155;
+      }
+
+      canvas#gameCanvas {
+        background: #0d111a;
+        border: 2px solid #00f0ff;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- LANDING -->
+    <div id="screen-landing" class="screen active">
+      <div class="arcade-badge">⚡ Stickman Duel ⚡</div>
+      <h1 id="landing-title">ULTRA DUELS</h1>
+      <button id="btn-entrar-landing" class="arcade-btn">▶ ENTRAR ◀</button>
+    </div>
+
+    <!-- AUTH -->
+    <div id="screen-auth" class="screen">
+      <div class="glass-card">
+        <h2 style="color: #00f0ff; margin-top: 0;">ACCESO</h2>
+        <div class="tabs">
+          <button type="button" id="tab-login" class="tab-btn active">Login</button>
+          <button type="button" id="tab-registro" class="tab-btn">Registro</button>
         </div>
-      `).join('');
-    } catch (err) {
-      lista.innerHTML = '<div style="color:#ff0055; padding:10px;">Error al cargar</div>';
-    }
-  });
 
-  document.getElementById('btn-volver-scores').addEventListener('click', () => {
-    mostrarSolo('screen-menu');
-  });
+        <form id="auth-form">
+          <label class="field-label">USUARIO</label>
+          <input id="auth-username" class="field-input" type="text" required />
 
-  document.getElementById('menu-logout').addEventListener('click', () => {
-    usuarioActual = null;
-    if (socket) {
-      socket.disconnect();
-      socket = null;
-    }
-    mostrarSolo('screen-landing');
-  });
+          <label class="field-label">CONTRASENA</label>
+          <input id="auth-password" class="field-input" type="password" required />
 
-  document.getElementById('btn-salir-juego').addEventListener('click', () => {
-    if (socket) {
-      socket.disconnect();
-      socket = null;
-    }
-    mostrarSolo('screen-menu');
-  });
+          <button type="submit" id="auth-submit" class="auth-submit">ENTRAR →</button>
+          <div id="auth-error" class="auth-error"></div>
+        </form>
 
-  // ================================================================
-  // 4. CONEXION Y BUCLE DEL JUEGO (SOCKET.IO)
-  // ================================================================
-  let socket = null;
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d');
+        <button id="btn-volver-auth" style="background:none; border:none; color:#aaa; margin-top:15px; cursor:pointer;">← Volver</button>
+      </div>
+    </div>
 
-  function iniciarJuego() {
-    if (socket) return;
-    socket = io();
+    <!-- MENU -->
+    <div id="screen-menu" class="screen">
+      <div class="glass-card">
+        <h2>MENU PRINCIPAL</h2>
+        <p>Usuario: <b id="menu-username" style="color: #00f0ff;">Jugador</b></p>
+        <button id="btn-jugar" class="menu-btn primary">⚔ PELEAR</button>
+        <button id="btn-puntajes" class="menu-btn secondary">🏆 PUNTAJES</button>
+        <button id="menu-logout" style="background:none; border:none; color:#ff0055; margin-top:10px; cursor:pointer;">Cerrar Sesion</button>
+      </div>
+    </div>
 
-    socket.on('init', (data) => {
-      socket.emit('setName', usuarioActual || 'Jugador');
-    });
+    <!-- PUNTAJES -->
+    <div id="screen-scores" class="screen">
+      <div class="glass-card">
+        <h2>🏆 SALON DE LA FAMA</h2>
+        <div id="scores-list"></div>
+        <button id="btn-volver-scores" style="background:none; border:none; color:#aaa; margin-top:15px; cursor:pointer;">← Volver</button>
+      </div>
+    </div>
 
-    socket.on('estadoJuego', (estado) => {
-      // Dibuja el escenario en canvas de 800x500
-      ctx.fillStyle = '#0d111a';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    <!-- JUEGO -->
+    <div id="screen-game" class="screen">
+      <canvas id="gameCanvas" width="800" height="500"></canvas>
+      <button id="btn-salir-juego" style="background:none; border:none; color:#ff0055; margin-top:10px; cursor:pointer;">🚪 Abandonar</button>
+    </div>
 
-      // Suelo
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(0, 400, canvas.width, 100);
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      function cambiarPantalla(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        const objetivo = document.getElementById(id);
+        if (objetivo) objetivo.classList.add('active');
+      }
 
-      // Dibujar jugadores
-      Object.values(estado.players).forEach(p => {
-        ctx.fillStyle = p.color || '#00f0ff';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y - 20, 10, 0, Math.PI * 2);
-        ctx.fill();
+      let usuarioActual = null;
+      let modoAuth = 'login';
 
-        ctx.strokeStyle = p.color || '#00f0ff';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y - 10);
-        ctx.lineTo(p.x, p.y + 10);
-        ctx.stroke();
+      document.getElementById('btn-entrar-landing').onclick = function() {
+        cambiarPantalla('screen-auth');
+      };
 
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '11px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(p.name, p.x, p.y - 35);
-      });
-    });
+      const tabLogin = document.getElementById('tab-login');
+      const tabRegistro = document.getElementById('tab-registro');
+      const authSubmit = document.getElementById('auth-submit');
+      const authError = document.getElementById('auth-error');
 
-    // Enviar entradas de control al servidor
-    window.addEventListener('keydown', (e) => {
-      if (!socket) return;
-      if (['ArrowLeft', 'a', 'A'].includes(e.key)) socket.emit('input', { left: true });
-      if (['ArrowRight', 'd', 'D'].includes(e.key)) socket.emit('input', { right: true });
-      if (['ArrowUp', 'w', 'W'].includes(e.key)) socket.emit('input', { up: true });
-    });
-  }
-</script>
+      tabLogin.onclick = function() {
+        modoAuth = 'login';
+        tabLogin.classList.add('active');
+        tabRegistro.classList.remove('active');
+        authSubmit.innerText = 'ENTRAR →';
+        authError.innerText = '';
+      };
+
+      tabRegistro.onclick = function() {
+        modoAuth = 'registro';
+        tabRegistro.classList.add('active');
+        tabLogin.classList.remove('active');
+        authSubmit.innerText = 'CREAR CUENTA →';
+        authError.innerText = '';
+      };
+
+      document.getElementById('btn-volver-auth').onclick = function() {
+        cambiarPantalla('screen-landing');
+      };
+
+      document.getElementById('auth-form').onsubmit = async function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('auth-username').value.trim();
+        const password = document.getElementById('auth-password').value.trim();
+
+        if (!username || !password) {
+          authError.innerText = 'Escribe usuario y contrasena';
+          return;
+        }
+
+        authError.innerText = 'Conectando...';
+
+        const endpoint = modoAuth === 'login' ? '/api/login' : '/api/register';
+
+        try {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            authError.innerText = data.error || 'Fallo de acceso';
+            return;
+          }
+
+          usuarioActual = data.username;
+          document.getElementById('menu-username').innerText = usuarioActual;
+          document.getElementById('auth-password').value = '';
+          authError.innerText = '';
+          cambiarPantalla('screen-menu');
+
+        } catch (err) {
+          authError.innerText = 'Error de respuesta del servidor';
+        }
+      };
+
+      document.getElementById('btn-jugar').onclick = function() {
+        cambiarPantalla('screen-game');
+        iniciarSocket();
+      };
+
+      document.getElementById('btn-puntajes').onclick = async function() {
+        const lista = document.getElementById('scores-list');
+        lista.innerHTML = 'Cargando...';
+        cambiarPantalla('screen-scores');
+
+        try {
+          const res = await fetch('/api/ganadores');
+          const datos = await res.json();
+          if (!datos.length) {
+            lista.innerHTML = 'Sin puntajes registrados';
+            return;
+          }
+          lista.innerHTML = datos.map((g, i) => `
+            <div class="score-row">
+              <span>#${i + 1} ${g.nombre}</span>
+              <span style="color:#00f0ff;">${g.puntuacion} pts</span>
+            </div>
+          `).join('');
+        } catch (err) {
+          lista.innerHTML = 'Error al consultar tabla';
+        }
+      };
+
+      document.getElementById('btn-volver-scores').onclick = function() {
+        cambiarPantalla('screen-menu');
+      };
+
+      document.getElementById('menu-logout').onclick = function() {
+        usuarioActual = null;
+        if (socket) socket.disconnect();
+        cambiarPantalla('screen-landing');
+      };
+
+      document.getElementById('btn-salir-juego').onclick = function() {
+        if (socket) socket.disconnect();
+        cambiarPantalla('screen-menu');
+      };
+
+      let socket = null;
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+
+      function iniciarSocket() {
+        if (socket) socket.disconnect();
+        socket = io();
+
+        socket.on('init', () => {
+          socket.emit('setName', usuarioActual || 'Jugador');
+        });
+
+        socket.on('estadoJuego', (estado) => {
+          ctx.fillStyle = '#0d111a';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(0, 400, canvas.width, 100);
+
+          if (estado.players) {
+            Object.values(estado.players).forEach(p => {
+              ctx.fillStyle = p.color || '#00f0ff';
+              ctx.beginPath();
+              ctx.arc(p.x, p.y - 20, 10, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.strokeStyle = p.color || '#00f0ff';
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y - 10);
+              ctx.lineTo(p.x, p.y + 10);
+              ctx.stroke();
+
+              ctx.fillStyle = '#ffffff';
+              ctx.font = '12px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText(p.name, p.x, p.y - 35);
+            });
+          }
+        });
+
+        window.onkeydown = function(e) {
+          if (!socket) return;
+          if (['ArrowLeft', 'a', 'A'].includes(e.key)) socket.emit('input', { left: true });
+          if (['ArrowRight', 'd', 'D'].includes(e.key)) socket.emit('input', { right: true });
+          if (['ArrowUp', 'w', 'W'].includes(e.key)) socket.emit('input', { up: true });
+        };
+      }
+    </script>
+  </body>
+</html>
