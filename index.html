@@ -1,1167 +1,988 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stickman — Supreme Cyber Duelists</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-    <style>
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        background: #05070d;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        color: #ffffff;
-        font-family: 'Rajdhani', sans-serif;
-        overflow: hidden;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stickman — Supreme Cyber Duelists</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #05070d;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #ffffff;
+      font-family: 'Rajdhani', sans-serif;
+      overflow: hidden;
+    }
 
-      /* ===================== CANVAS DE FONDO (LUCHA DEMO) ===================== */
-      #bg-canvas {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: 0;
-        pointer-events: none;
-        filter: blur(1px);
-      }
+    /* ===================== CANVAS DE FONDO (LUCHA DEMO) ===================== */
+    #bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      filter: blur(1px);
+    }
 
-      /* ===================== NAVEGACIÓN Y PANTALLAS ===================== */
-      .screen {
-        display: none;
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
-        z-index: 10;
-      }
-      .screen.active {
-        display: flex;
-      }
+    /* ===================== NAVEGACIÓN Y PANTALLAS ===================== */
+    .screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      z-index: 10;
+    }
+    .screen.active {
+      display: flex;
+    }
 
-      /* ===================== LANDING SCREEN ===================== */
-      #screen-landing {
-        gap: 24px;
-        text-align: center;
-      }
+    /* ===================== LANDING SCREEN ===================== */
+    #screen-landing {
+      gap: 24px;
+      text-align: center;
+    }
 
-      .arcade-badge {
-        background: linear-gradient(90deg, #ff0055, #ff5500);
-        color: #fff;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 4px;
-        padding: 6px 22px;
-        text-transform: uppercase;
-        clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-        box-shadow: 0 0 20px rgba(255, 0, 85, 0.7);
-      }
+    .arcade-badge {
+      background: linear-gradient(90deg, #ff0055, #ff5500);
+      color: #fff;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      padding: 6px 22px;
+      text-transform: uppercase;
+      clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+      box-shadow: 0 0 20px rgba(255, 0, 85, 0.7);
+    }
 
-      #landing-title {
-        font-family: 'Orbitron', sans-serif;
-        font-size: 64px;
-        font-weight: 900;
-        line-height: 0.95;
-        letter-spacing: 4px;
-        margin: 0;
-        text-transform: uppercase;
-        text-shadow: 0 0 25px rgba(0, 240, 255, 0.6), 4px 4px 0px #ff0055;
-      }
-      #landing-title .neon-cyan { color: #00f0ff; }
-      #landing-title .neon-pink { color: #ff0055; }
+    #landing-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 56px;
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: 4px;
+      margin: 0;
+      text-transform: uppercase;
+      text-shadow: 0 0 25px rgba(0, 240, 255, 0.6), 4px 4px 0px #ff0055;
+    }
+    #landing-title .neon-cyan { color: #00f0ff; }
+    #landing-title .neon-pink { color: #ff0055; }
 
-      #landing-subtitle {
-        font-size: 14px;
-        letter-spacing: 8px;
-        color: #00f0ff;
-        text-transform: uppercase;
-        text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
-      }
+    #landing-subtitle {
+      font-size: 14px;
+      letter-spacing: 8px;
+      color: #00f0ff;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+    }
 
-      .arcade-btn {
-        font-family: 'Orbitron', sans-serif;
-        background: linear-gradient(135deg, #00f0ff 0%, #0077ff 100%);
-        color: #000;
-        font-weight: 900;
-        font-size: 20px;
-        letter-spacing: 4px;
-        padding: 18px 65px;
-        border: none;
-        cursor: pointer;
-        text-transform: uppercase;
-        clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
-        box-shadow: 0 0 30px rgba(0, 240, 255, 0.7);
-        transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
-      }
-      .arcade-btn:hover {
-        transform: scale(1.05) translateY(-2px);
-        filter: brightness(1.2);
-        box-shadow: 0 0 45px rgba(0, 240, 255, 0.9);
-      }
-      .arcade-btn:active {
-        transform: scale(0.98);
-      }
+    .arcade-btn {
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(135deg, #00f0ff 0%, #0077ff 100%);
+      color: #000;
+      font-weight: 900;
+      font-size: 18px;
+      letter-spacing: 4px;
+      padding: 16px 50px;
+      border: none;
+      cursor: pointer;
+      text-transform: uppercase;
+      clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.7);
+      transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+    }
+    .arcade-btn:hover {
+      transform: scale(1.05) translateY(-2px);
+      filter: brightness(1.2);
+      box-shadow: 0 0 45px rgba(0, 240, 255, 0.9);
+    }
+    .arcade-btn:active {
+      transform: scale(0.98);
+    }
 
-      /* ===================== TARJETAS CRISTAL (AUTH Y MENÚ) ===================== */
-      .glass-card {
-        width: 420px;
-        max-width: 90vw;
-        background: rgba(10, 15, 30, 0.82);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(0, 240, 255, 0.35);
-        border-radius: 6px;
-        padding: 35px 30px;
-        box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(0, 240, 255, 0.12);
-        text-align: center;
-        position: relative;
-      }
-      .glass-card h2 {
-        font-family: 'Orbitron', sans-serif;
-        color: #00f0ff;
-        letter-spacing: 3px;
-        font-size: 24px;
-        margin: 0 0 6px 0;
-        text-transform: uppercase;
-        text-shadow: 0 0 12px rgba(0, 240, 255, 0.6);
-      }
-      .glass-card .card-sub {
-        color: #94a3b8;
-        font-size: 13px;
-        letter-spacing: 2px;
-        margin-bottom: 22px;
-        text-transform: uppercase;
-      }
+    /* ===================== TARJETAS CRISTAL (AUTH Y MENÚ) ===================== */
+    .glass-card {
+      width: 420px;
+      max-width: 90vw;
+      background: rgba(10, 15, 30, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      border-radius: 6px;
+      padding: 35px 30px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(0, 240, 255, 0.12);
+      text-align: center;
+      position: relative;
+    }
+    .glass-card h2 {
+      font-family: 'Orbitron', sans-serif;
+      color: #00f0ff;
+      letter-spacing: 3px;
+      font-size: 24px;
+      margin: 0 0 6px 0;
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(0, 240, 255, 0.6);
+    }
+    .glass-card .card-sub {
+      color: #94a3b8;
+      font-size: 13px;
+      letter-spacing: 2px;
+      margin-bottom: 22px;
+      text-transform: uppercase;
+    }
 
-      .tabs { display: flex; margin-bottom: 22px; border-bottom: 2px solid rgba(255, 255, 255, 0.1); }
-      .tab-btn {
-        flex: 1;
-        background: none;
-        border: none;
-        color: #64748b;
-        font-family: 'Orbitron', sans-serif;
-        font-weight: 700;
-        letter-spacing: 2px;
-        font-size: 13px;
-        padding: 12px 0;
-        cursor: pointer;
-        text-transform: uppercase;
-        border-bottom: 3px solid transparent;
-        transition: all 0.2s ease;
-      }
-      .tab-btn.active { color: #ff0055; border-bottom-color: #ff0055; text-shadow: 0 0 10px rgba(255, 0, 85, 0.7); }
+    .tabs { display: flex; margin-bottom: 22px; border-bottom: 2px solid rgba(255, 255, 255, 0.1); }
+    .tab-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      color: #64748b;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      letter-spacing: 2px;
+      font-size: 13px;
+      padding: 12px 0;
+      cursor: pointer;
+      text-transform: uppercase;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .tab-btn.active { color: #ff0055; border-bottom-color: #ff0055; text-shadow: 0 0 10px rgba(255, 0, 85, 0.7); }
 
-      .field-label {
-        display: block;
-        text-align: left;
-        font-size: 12px;
-        letter-spacing: 2px;
-        color: #00f0ff;
-        text-transform: uppercase;
-        margin: 14px 0 6px 0;
-        font-weight: 700;
-      }
-      .field-input {
-        width: 100%;
-        font-size: 16px;
-        padding: 12px 14px;
-        border-radius: 4px;
-        border: 1px solid rgba(0, 240, 255, 0.3);
-        background: rgba(5, 8, 18, 0.85);
-        color: #fff;
-        font-family: 'Rajdhani', sans-serif;
-      }
-      .field-input:focus { outline: none; border-color: #ff0055; box-shadow: 0 0 12px rgba(255, 0, 85, 0.5); }
+    .field-label {
+      display: block;
+      text-align: left;
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: #00f0ff;
+      text-transform: uppercase;
+      margin: 14px 0 6px 0;
+      font-weight: 700;
+    }
+    .field-input {
+      width: 100%;
+      font-size: 16px;
+      padding: 12px 14px;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      background: rgba(5, 8, 18, 0.85);
+      color: #fff;
+      font-family: 'Rajdhani', sans-serif;
+    }
+    .field-input:focus { outline: none; border-color: #ff0055; box-shadow: 0 0 12px rgba(255, 0, 85, 0.5); }
 
-      .auth-submit {
-        width: 100%;
-        margin-top: 24px;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 15px;
-        padding: 14px 0;
-        border: none;
-        background: linear-gradient(90deg, #ff0055, #ff5500);
-        color: #fff;
-        font-weight: 900;
-        letter-spacing: 3px;
-        cursor: pointer;
-        text-transform: uppercase;
-        box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
-      }
-      .auth-submit:hover { filter: brightness(1.2); }
+    .auth-submit {
+      width: 100%;
+      margin-top: 24px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 15px;
+      padding: 14px 0;
+      border: none;
+      background: linear-gradient(90deg, #ff0055, #ff5500);
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: 3px;
+      cursor: pointer;
+      text-transform: uppercase;
+      box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+    }
+    .auth-submit:hover { filter: brightness(1.2); }
 
-      .auth-error {
-        margin-top: 14px;
-        font-size: 13px;
-        color: #ff3366;
-        min-height: 16px;
-      }
+    .auth-error {
+      margin-top: 14px;
+      font-size: 13px;
+      color: #ff3366;
+      min-height: 16px;
+    }
 
-      .link-btn {
-        margin-top: 18px;
-        background: none;
-        border: none;
-        color: #94a3b8;
-        font-size: 13px;
-        letter-spacing: 1px;
-        cursor: pointer;
-      }
-      .link-btn:hover { color: #fff; }
+    .link-btn {
+      margin-top: 18px;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 13px;
+      letter-spacing: 1px;
+      cursor: pointer;
+    }
+    .link-btn:hover { color: #fff; }
 
-      /* ===================== MENÚ PRINCIPAL ===================== */
-      #screen-menu { gap: 18px; text-align: center; }
-      .welcome-pill {
-        border: 1px solid rgba(0, 240, 255, 0.4);
-        background: rgba(0, 240, 255, 0.1);
-        color: #fff;
-        font-size: 15px;
-        padding: 8px 22px;
-        border-radius: 20px;
-        margin-bottom: 10px;
-        letter-spacing: 1px;
-      }
-      .welcome-pill b { color: #00f0ff; }
+    /* ===================== MENÚ PRINCIPAL ===================== */
+    #screen-menu { gap: 18px; text-align: center; }
+    .welcome-pill {
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      background: rgba(0, 240, 255, 0.1);
+      color: #fff;
+      font-size: 15px;
+      padding: 8px 22px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+    .welcome-pill b { color: #00f0ff; }
 
-      .menu-btn {
-        width: 300px;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 15px;
-        font-weight: 900;
-        letter-spacing: 3px;
-        padding: 16px 0;
-        border: none;
-        cursor: pointer;
-        text-transform: uppercase;
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-      }
-      .menu-btn.primary {
-        background: linear-gradient(90deg, #00f0ff, #0077ff);
-        color: #000;
-        box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
-      }
-      .menu-btn.secondary {
-        background: rgba(15, 23, 42, 0.85);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: #fff;
-      }
-      .menu-btn:hover { transform: scale(1.03); }
+    .menu-btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
 
-      #menu-logout {
-        margin-top: 8px;
-        background: none;
-        border: none;
-        color: #cbd5e1;
-        font-size: 12px;
-        letter-spacing: 2px;
-        cursor: pointer;
-        text-transform: uppercase;
-      }
-      #menu-logout:hover { color: #ff0055; }
+    .menu-btn {
+      width: 300px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      padding: 14px 0;
+      border: none;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .menu-btn.primary {
+      background: linear-gradient(90deg, #00f0ff, #0077ff);
+      color: #000;
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
+    }
+    .menu-btn.secondary {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+    .menu-btn:hover { transform: scale(1.03); }
 
-      /* ===================== TABLA DE PUNTAJES ===================== */
-      #scores-list {
-        max-height: 320px;
-        overflow-y: auto;
-        text-align: left;
-        margin-top: 10px;
-      }
-      .score-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        font-size: 15px;
-      }
-      .score-pos { width: 34px; color: #ff0055; font-weight: 900; font-family: 'Orbitron', sans-serif; }
-      .score-name { flex: 1; font-weight: bold; }
-      .score-pts { color: #00f0ff; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+    #menu-logout {
+      margin-top: 8px;
+      background: none;
+      border: none;
+      color: #cbd5e1;
+      font-size: 12px;
+      letter-spacing: 2px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    #menu-logout:hover { color: #ff0055; }
 
-      /* ===================== PANTALLA DE JUEGO ===================== */
-      #screen-game { gap: 0; }
-      #hud {
-        display: flex;
-        justify-content: space-between;
-        width: 800px;
-        max-width: 96vw;
-        margin-bottom: 10px;
-        background: rgba(10, 15, 30, 0.88);
-        border: 1px solid rgba(0, 240, 255, 0.3);
-        padding: 12px 16px;
-        border-radius: 6px;
-        gap: 12px;
-        box-shadow: 0 0 25px rgba(0,0,0,0.8);
-      }
-      .player-stats { text-align: center; flex: 1; }
-      .player-stats .name-line {
-        font-family: 'Orbitron', sans-serif;
-        font-weight: 900;
-        font-size: 13px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .player-stats .weapon-line { font-size: 12px; color: #94a3b8; margin-top: 2px; font-weight: 700; }
-      .health-bar-container {
-        background: rgba(15, 23, 42, 0.9);
-        height: 14px;
-        border-radius: 3px;
-        overflow: hidden;
-        margin-top: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
-      }
-      .health-bar { height: 100%; width: 100%; transition: width 0.15s ease-out; }
+    /* ===================== TABLA DE PUNTAJES ===================== */
+    #scores-list {
+      max-height: 250px;
+      overflow-y: auto;
+      text-align: left;
+      margin-top: 10px;
+    }
+    .score-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 14px;
+    }
+    .score-pos { width: 34px; color: #ff0055; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+    .score-name { flex: 1; font-weight: bold; }
+    .score-pts { color: #00f0ff; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+
+    /* ===================== PANTALLA DE JUEGO ===================== */
+    #screen-game { gap: 0; }
+    #hud {
+      display: flex;
+      justify-content: space-between;
+      width: 800px;
+      max-width: 96vw;
+      margin-bottom: 10px;
+      background: rgba(10, 15, 30, 0.88);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      padding: 12px 16px;
+      border-radius: 6px;
+      gap: 12px;
+      box-shadow: 0 0 25px rgba(0,0,0,0.8);
+    }
+    .player-stats { text-align: center; flex: 1; }
+    .player-stats .name-line {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .player-stats .weapon-line { font-size: 12px; color: #94a3b8; margin-top: 2px; font-weight: 700; }
+    .health-bar-container {
+      background: rgba(15, 23, 42, 0.9);
+      height: 14px;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+    }
+    .health-bar { height: 100%; width: 100%; transition: width 0.15s ease-out; }
+    #hp-p1 { background: linear-gradient(90deg, #00f0ff, #0077ff); }
+    #hp-p2 { background: linear-gradient(90deg, #ff0055, #ff5500); }
+
+    #map-name {
+      font-family: 'Orbitron', sans-serif;
+      width: 800px;
+      max-width: 96vw;
+      text-align: center;
+      font-size: 13px;
+      color: #00f0ff;
+      margin-bottom: 8px;
+      letter-spacing: 3px;
+      font-weight: bold;
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+    }
+
+    #canvas-wrap { position: relative; }
+    canvas#gameCanvas {
+      background: #090d16;
+      border: 2px solid rgba(0, 240, 255, 0.5);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.95), 0 0 15px rgba(0, 240, 255, 0.2);
+      display: block;
+      max-width: 96vw;
+      border-radius: 4px;
+    }
+    #rol-tag {
+      margin-top: 10px;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-align: center;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    #btn-salir-juego {
+      margin-top: 8px;
+      background: none;
+      border: none;
+      color: #cbd5e1;
+      font-size: 12px;
+      letter-spacing: 2px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    #btn-salir-juego:hover { color: #ff0055; }
+
+    /* BANNER DE RONDA & PODIO */
+    #round-banner {
+      font-family: 'Orbitron', sans-serif;
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-15px);
+      background: rgba(10, 15, 30, 0.95);
+      border: 2px solid #00f0ff;
+      padding: 14px 32px;
+      font-weight: 900;
+      font-size: 18px;
+      letter-spacing: 2px;
+      z-index: 15;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.4);
+    }
+    #round-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    #podium-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(5, 8, 18, 0.94);
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+    }
+    #podium-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      color: #00f0ff;
+      margin-bottom: 24px;
+      text-shadow: 0 0 20px rgba(0, 240, 255, 0.8);
+    }
+    #podium-winner {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 20px;
+      font-weight: 900;
+      color: #ff0055;
+      margin-bottom: 20px;
+      text-shadow: 0 0 15px rgba(255, 0, 85, 0.8);
+    }
+    .podium-pillar {
+      width: 100px;
+      height: 120px;
+      background: linear-gradient(180deg, #00f0ff 0%, #004488 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 32px;
+      color: #000;
+      clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.6);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CANVAS DE FONDO -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- PANTALLA 1: LANDING -->
+  <div id="screen-landing" class="screen active">
+    <div class="arcade-badge">Cyber Arcade Edition</div>
+    <h1 id="landing-title">
+      <span class="neon-cyan">Stickman</span><br>
+      <span class="neon-pink">Supreme Duelists</span>
+    </h1>
+    <div id="landing-subtitle">Edición Cibernética</div>
+    <button class="arcade-btn" onclick="goToAuth()">Entrar al Juego</button>
+  </div>
+
+  <!-- PANTALLA 2: AUTH / REGISTRO -->
+  <div id="screen-auth" class="screen">
+    <div class="glass-card">
+      <h2>Acceso Cybernetico</h2>
+      <div class="card-sub">Inicia sesión para combatir</div>
       
-      #map-name {
-        font-family: 'Orbitron', sans-serif;
-        width: 800px;
-        max-width: 96vw;
-        text-align: center;
-        font-size: 13px;
-        color: #00f0ff;
-        margin-bottom: 8px;
-        letter-spacing: 3px;
-        font-weight: bold;
-        text-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
-      }
-      
-      #canvas-wrap { position: relative; }
-      canvas#gameCanvas {
-        background: #090d16;
-        border: 2px solid rgba(0, 240, 255, 0.5);
-        box-shadow: 0 0 40px rgba(0, 0, 0, 0.95), 0 0 15px rgba(0, 240, 255, 0.2);
-        display: block;
-        max-width: 96vw;
-        border-radius: 4px;
-      }
-      #rol-tag {
-        margin-top: 10px;
-        font-family: 'Orbitron', sans-serif;
-        font-weight: 900;
-        letter-spacing: 2px;
-        text-align: center;
-        font-size: 13px;
-      }
-      #btn-salir-juego {
-        margin-top: 8px;
-        background: none;
-        border: none;
-        color: #cbd5e1;
-        font-size: 12px;
-        letter-spacing: 2px;
-        cursor: pointer;
-        text-transform: uppercase;
-      }
-      #btn-salir-juego:hover { color: #ff0055; }
+      <div class="tabs">
+        <button id="tab-login" class="tab-btn active" onclick="switchAuthTab('login')">Ingresar</button>
+        <button id="tab-register" class="tab-btn" onclick="switchAuthTab('register')">Registro</button>
+      </div>
 
-      /* BANNER DE RONDA & PODIO */
-      #round-banner {
-        font-family: 'Orbitron', sans-serif;
-        position: absolute;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%) translateY(-15px);
-        background: rgba(10, 15, 30, 0.95);
-        border: 2px solid #00f0ff;
-        padding: 14px 32px;
-        font-weight: 900;
-        font-size: 18px;
-        letter-spacing: 2px;
-        z-index: 15;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.25s ease, transform 0.25s ease;
-        box-shadow: 0 0 30px rgba(0, 240, 255, 0.4);
-      }
-      #round-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+        <label class="field-label">Usuario</label>
+        <input type="text" id="auth-user" class="field-input" placeholder="Nombre de guerrero" required />
+        
+        <label class="field-label">Contraseña</label>
+        <input type="password" id="auth-pass" class="field-input" placeholder="••••••••" required />
 
-      #podium-overlay {
-        display: none;
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(5, 8, 18, 0.94);
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 20;
-      }
-      #podium-title {
-        font-family: 'Orbitron', sans-serif;
-        font-size: 30px;
-        font-weight: 900;
-        color: #00f0ff;
-        margin-bottom: 30px;
-        text-shadow: 0 0 20px rgba(0, 240, 255, 0.8);
-      }
-      #podium-blocks { display: flex; align-items: flex-end; gap: 24px; }
-      .podium-block { display: flex; flex-direction: column; align-items: center; }
-      .podium-label { font-family: 'Orbitron', sans-serif; font-weight: 900; margin-bottom: 8px; font-size: 15px; }
-      .podium-score { font-size: 13px; color: #94a3b8; margin-bottom: 6px; font-weight: bold; }
-      .podium-pillar {
-        width: 90px;
-        display: flex;
-        align-items: flex-start;
-        justify-content: center;
-        padding-top: 10px;
-        font-family: 'Orbitron', sans-serif;
-        font-weight: 900;
-        font-size: 26px;
-        color: rgba(0, 0, 0, 0.7);
-        border-radius: 4px 4px 0 0;
-      }
-      #podium-restart-msg { margin-top: 28px; font-size: 14px; color: #94a3b8; letter-spacing: 2px; font-weight: 700; }
-    </style>
-  </head>
-  <body>
-    <!-- CANVAS DE FONDO CON DEMO DE PELEA -->
-    <canvas id="bg-canvas"></canvas>
-
-    <!-- PANTALLA DE INICIO (LANDING) -->
-    <div id="screen-landing" class="screen active">
-      <div class="arcade-badge">⚡ 4 Players Cyber Arcade ⚡</div>
-      <h1 id="landing-title">
-        <span class="neon-pink">Supreme</span><br />
-        <span class="neon-cyan">Duelist</span>
-      </h1>
-      <div id="landing-subtitle">Stickman Showdown</div>
-      <button id="btn-entrar-landing" class="arcade-btn">▶ ENTRAR ◀</button>
+        <div id="auth-error" class="auth-error"></div>
+        <button type="submit" id="auth-submit-btn" class="auth-submit">Iniciar Sesión</button>
+      </form>
+      <button class="link-btn" onclick="showScreen('screen-landing')">← Volver a inicio</button>
     </div>
+  </div>
 
-    <!-- LOGIN / REGISTRO -->
-    <div id="screen-auth" class="screen">
-      <div class="glass-card">
-        <h2>Acceso Arena</h2>
-        <div class="card-sub">Inicia sesión para luchar</div>
+  <!-- PANTALLA 3: MENÚ PRINCIPAL -->
+  <div id="screen-menu" class="screen">
+    <div class="glass-card">
+      <div class="welcome-pill">Bienvenido, <b id="user-display">CyberPlayer</b></div>
+      <h2>Menú Principal</h2>
+      <div class="card-sub">Selecciona el modo de batalla</div>
 
-        <div class="tabs">
-          <button type="button" id="tab-login" class="tab-btn active">Login</button>
-          <button type="button" id="tab-registro" class="tab-btn">Registro</button>
+      <div class="menu-btn-group">
+        <button class="menu-btn primary" onclick="startGame('pvp')">1 VS 1 Local</button>
+        <button class="menu-btn primary" style="background: linear-gradient(90deg, #ff0055, #ff5500);" onclick="startGame('ai')">Jugador VS IA</button>
+        <button class="menu-btn secondary" onclick="showScores()">Clasificación</button>
+        <button id="menu-logout" onclick="logout()">Cerrar Sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA 4: TABLA DE PUNTAJES -->
+  <div id="screen-scores" class="screen">
+    <div class="glass-card">
+      <h2>Puntajes Cyber</h2>
+      <div class="card-sub">Mejores Duelistas del Sistema</div>
+      <div id="scores-list"></div>
+      <button class="arcade-btn" style="margin-top:20px; font-size:14px; padding:10px 30px;" onclick="showScreen('screen-menu')">Volver al Menú</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA 5: JUEGO -->
+  <div id="screen-game" class="screen">
+    <div id="hud">
+      <div class="player-stats">
+        <div class="name-line" id="hud-p1-name" style="color:#00f0ff;">Jugador 1</div>
+        <div class="weapon-line" id="hud-p1-weapon">Sable Cyber</div>
+        <div class="health-bar-container">
+          <div id="hp-p1" class="health-bar"></div>
         </div>
-
-        <form id="auth-form">
-          <label class="field-label" for="auth-username">Usuario</label>
-          <input id="auth-username" class="field-input" type="text" maxlength="20" autocomplete="username" required />
-
-          <label class="field-label" for="auth-password">Contraseña</label>
-          <input id="auth-password" class="field-input" type="password" maxlength="60" autocomplete="current-password" required />
-
-          <button type="submit" id="auth-submit" class="auth-submit">Entrar →</button>
-          <div id="auth-error" class="auth-error"></div>
-        </form>
-
-        <button id="btn-volver-auth" class="link-btn">← Volver al inicio</button>
+      </div>
+      <div style="font-family:'Orbitron'; font-weight:900; color:#ff0055; font-size:22px; align-self:center;">VS</div>
+      <div class="player-stats">
+        <div class="name-line" id="hud-p2-name" style="color:#ff0055;">Jugador 2</div>
+        <div class="weapon-line" id="hud-p2-weapon">Blaster Láser</div>
+        <div class="health-bar-container">
+          <div id="hp-p2" class="health-bar"></div>
+        </div>
       </div>
     </div>
 
-    <!-- MENÚ PRINCIPAL -->
-    <div id="screen-menu" class="screen">
-      <div class="glass-card" style="width: 380px">
-        <h2>Menú Principal</h2>
-        <div class="welcome-pill">Peleador: <b id="menu-username">Jugador</b></div>
-        <div style="display: flex; flex-direction: column; gap: 14px; align-items: center; margin-top: 15px;">
-          <button id="btn-jugar" class="menu-btn primary">⚔ ENTRAR A COMBATE</button>
-          <button id="btn-puntajes" class="menu-btn secondary">🏆 SALÓN DE LA FAMA</button>
-        </div>
-        <button id="menu-logout">Cerrar Sesión</button>
+    <div id="map-name">ARENA: MATRIX GRID 01</div>
+
+    <div id="canvas-wrap">
+      <div id="round-banner">¡RONDA DE COMBATE!</div>
+      <div id="podium-overlay">
+        <div id="podium-title">¡COMBATE FINALIZADO!</div>
+        <div id="podium-winner">GANADOR: JUGADOR 1</div>
+        <div class="podium-pillar">1</div>
+        <button class="arcade-btn" style="margin-top:25px; font-size:14px; padding:10px 30px;" onclick="exitGame()">Continuar</button>
       </div>
+      <canvas id="gameCanvas" width="800" height="450"></canvas>
     </div>
 
-    <!-- TABLA DE PUNTAJES -->
-    <div id="screen-scores" class="screen">
-      <div class="glass-card">
-        <h2>🏆 Salón de la Fama</h2>
-        <div class="card-sub">Mejores peleadores de la arena</div>
-        <div id="scores-list"></div>
-        <button id="btn-volver-scores" class="link-btn">← Regresar al Menú</button>
-      </div>
-    </div>
+    <div id="rol-tag">Controles P1: [A][D] Mover | [W] Saltar | [F] Atacar | [G] Disparar<br>Controles P2: [←][→] Mover | [↑] Saltar | [K] Atacar | [L] Disparar</div>
+    <button id="btn-salir-juego" onclick="exitGame()">← Abandonar Combate</button>
+  </div>
 
-    <!-- PANTALLA DE JUEGO PRINCIPAL -->
-    <div id="screen-game" class="screen">
-      <div id="hud">
-        <div class="player-stats">
-          <div id="p1-name" class="name-line" style="color: #ff0055">P1: <span id="p1-score">0</span></div>
-          <div class="health-bar-container"><div id="p1-bar" class="health-bar" style="background: linear-gradient(90deg, #ff0055, #ff5500);"></div></div>
-          <div id="p1-weapon" class="weapon-line">Espada</div>
-        </div>
-        <div class="player-stats">
-          <div id="p2-name" class="name-line" style="color: #00f0ff">P2: <span id="p2-score">0</span></div>
-          <div class="health-bar-container"><div id="p2-bar" class="health-bar" style="background: linear-gradient(90deg, #00f0ff, #0077ff);"></div></div>
-          <div id="p2-weapon" class="weapon-line">Espada</div>
-        </div>
-        <div class="player-stats">
-          <div id="p3-name" class="name-line" style="color: #00ff66">P3: <span id="p3-score">0</span></div>
-          <div class="health-bar-container"><div id="p3-bar" class="health-bar" style="background: linear-gradient(90deg, #00ff66, #00b33c);"></div></div>
-          <div id="p3-weapon" class="weapon-line">Espada</div>
-        </div>
-        <div class="player-stats">
-          <div id="p4-name" class="name-line" style="color: #ffcc00">P4: <span id="p4-score">0</span></div>
-          <div class="health-bar-container"><div id="p4-bar" class="health-bar" style="background: linear-gradient(90deg, #ffcc00, #ff8800);"></div></div>
-          <div id="p4-weapon" class="weapon-line">Espada</div>
-        </div>
-      </div>
+  <script>
+    /* ==========================================================================
+       GESTIÓN DE PANTALLAS Y USUARIOS (LocalStorage)
+       ========================================================================== */
+    let currentUser = null;
+    let authMode = 'login';
+    let currentGameMode = 'pvp'; // 'pvp' o 'ai'
 
-      <div id="map-name">Cargando arena...</div>
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
 
-      <div id="canvas-wrap">
-        <canvas id="gameCanvas" width="800" height="500"></canvas>
-        <div id="round-banner"></div>
-        <div id="podium-overlay">
-          <div id="podium-title">🏆 GANADOR DE LA ARENA 🏆</div>
-          <div id="podium-blocks"></div>
-          <div id="podium-restart-msg">Reiniciando combate...</div>
-        </div>
-      </div>
+    function goToAuth() {
+      showScreen('screen-auth');
+    }
 
-      <div id="rol-tag">Identificando rol en la arena...</div>
-      <button id="btn-salir-juego">🚪 Abandonar Arena</button>
-    </div>
+    function switchAuthTab(mode) {
+      authMode = mode;
+      document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+      document.getElementById('tab-register').classList.toggle('active', mode === 'register');
+      document.getElementById('auth-submit-btn').innerText = mode === 'login' ? 'Iniciar Sesión' : 'Registrarse';
+      document.getElementById('auth-error').innerText = '';
+    }
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-      // ================================================================
-      //  1. DEMO DE FONDO FLUIDA (CANVAS PRINCIPAL)
-      // ================================================================
-      const bgCanvas = document.getElementById('bg-canvas');
-      const bgCtx = bgCanvas.getContext('2d');
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const user = document.getElementById('auth-user').value.trim();
+      const pass = document.getElementById('auth-pass').value.trim();
+      const err = document.getElementById('auth-error');
 
-      function resizeBgCanvas() {
-        bgCanvas.width = window.innerWidth;
-        bgCanvas.height = window.innerHeight;
+      let users = JSON.parse(localStorage.getItem('cyber_users') || '{}');
+
+      if (authMode === 'register') {
+        if (users[user]) {
+          err.innerText = 'El usuario ya existe';
+          return;
+        }
+        users[user] = { password: pass, wins: 0 };
+        localStorage.setItem('cyber_users', JSON.stringify(users));
+        currentUser = user;
+        loginSuccess();
+      } else {
+        if (!users[user] || users[user].password !== pass) {
+          err.innerText = 'Usuario o contraseña incorrectos';
+          return;
+        }
+        currentUser = user;
+        loginSuccess();
       }
-      window.addEventListener('resize', resizeBgCanvas);
-      resizeBgCanvas();
+    }
 
-      const demoFighters = [
-        { x: window.innerWidth * 0.25, y: 300, vx: 3, vy: 0, color: '#ff0055', facing: 1, weapon: 'espada', isAttacking: false, attackCooldown: 0 },
-        { x: window.innerWidth * 0.75, y: 300, vx: -3, vy: 0, color: '#00f0ff', facing: -1, weapon: 'pistola', isAttacking: false, attackCooldown: 0 }
-      ];
+    function loginSuccess() {
+      document.getElementById('user-display').innerText = currentUser;
+      showScreen('screen-menu');
+    }
 
-      function updateDemoFighters() {
-        const floorY = bgCanvas.height - 70;
-        const width = bgCanvas.width;
+    function logout() {
+      currentUser = null;
+      showScreen('screen-landing');
+    }
 
-        demoFighters.forEach((f, idx) => {
-          const other = demoFighters[idx === 0 ? 1 : 0];
-          const dist = other.x - f.x;
-          const absDist = Math.abs(dist);
+    function showScores() {
+      let users = JSON.parse(localStorage.getItem('cyber_users') || '{}');
+      let list = Object.keys(users).map(k => ({ name: k, wins: users[k].wins || 0 }));
+      list.sort((a,b) => b.wins - a.wins);
 
-          f.x += f.vx;
-          f.y += f.vy;
-
-          if (f.y < floorY) {
-            f.vy += 0.6;
-          } else {
-            f.y = floorY;
-            f.vy = 0;
-            if (absDist < 180 && Math.random() < 0.04) {
-              f.vy = -12 - Math.random() * 4;
-            }
-          }
-
-          if (absDist > 60) {
-            f.vx = dist > 0 ? 3.5 : -3.5;
-            f.facing = dist > 0 ? 1 : -1;
-          } else if (Math.random() < 0.05) {
-            f.vx = (Math.random() > 0.5 ? 1 : -1) * 4;
-          }
-
-          if (f.x < 100) { f.x = 100; f.vx = 4; f.facing = 1; }
-          if (f.x > width - 100) { f.x = width - 100; f.vx = -4; f.facing = -1; }
-
-          f.attackCooldown--;
-          if (absDist < 200 && f.attackCooldown <= 0) {
-            f.isAttacking = true;
-            f.attackCooldown = 30 + Math.floor(Math.random() * 20);
-          } else if (f.attackCooldown < 20) {
-            f.isAttacking = false;
-          }
+      let html = '';
+      if(list.length === 0) {
+        html = '<div style="text-align:center; padding:20px; color:#94a3b8;">No hay registros de combate</div>';
+      } else {
+        list.forEach((u, i) => {
+          html += `
+            <div class="score-row">
+              <span class="score-pos">#${i+1}</span>
+              <span class="score-name">${u.name}</span>
+              <span class="score-pts">${u.wins} VICTORIAS</span>
+            </div>
+          `;
         });
       }
+      document.getElementById('scores-list').innerHTML = html;
+      showScreen('screen-scores');
+    }
 
-      function drawDemoStickman(f) {
-        bgCtx.save();
-        bgCtx.strokeStyle = f.color;
-        bgCtx.fillStyle = f.color;
-        bgCtx.lineWidth = 4;
-        bgCtx.shadowColor = f.color;
-        bgCtx.shadowBlur = 12;
+    function recordWin(winnerName) {
+      if(!winnerName || winnerName.includes('IA')) return;
+      let users = JSON.parse(localStorage.getItem('cyber_users') || '{}');
+      if(users[winnerName]) {
+        users[winnerName].wins = (users[winnerName].wins || 0) + 1;
+        localStorage.setItem('cyber_users', JSON.stringify(users));
+      }
+    }
+
+    /* ==========================================================================
+       CANVAS DE FONDO ANIMADO
+       ========================================================================== */
+    const bgCanvas = document.getElementById('bg-canvas');
+    const bgCtx = bgCanvas.getContext('2d');
+
+    function resizeBg() {
+      bgCanvas.width = window.innerWidth;
+      bgCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeBg);
+    resizeBg();
+
+    let bgParticles = Array.from({length: 40}, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      vx: (Math.random() - 0.5) * 1.5,
+      vy: (Math.random() - 0.5) * 1.5,
+      size: Math.random() * 3 + 1
+    }));
+
+    function drawBg() {
+      bgCtx.fillStyle = 'rgba(5, 7, 13, 0.2)';
+      bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+      bgCtx.fillStyle = '#00f0ff';
+      bgParticles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if(p.x < 0) p.x = bgCanvas.width;
+        if(p.x > bgCanvas.width) p.x = 0;
+        if(p.y < 0) p.y = bgCanvas.height;
+        if(p.y > bgCanvas.height) p.y = 0;
 
         bgCtx.beginPath();
-        bgCtx.arc(f.x, f.y - 30, 14, 0, Math.PI * 2);
+        bgCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         bgCtx.fill();
-
-        bgCtx.beginPath();
-        bgCtx.moveTo(f.x, f.y - 16);
-        bgCtx.lineTo(f.x, f.y + 20);
-        bgCtx.stroke();
-
-        bgCtx.beginPath();
-        bgCtx.moveTo(f.x, f.y + 20);
-        bgCtx.lineTo(f.x - 12, f.y + 45);
-        bgCtx.moveTo(f.x, f.y + 20);
-        bgCtx.lineTo(f.x + 12, f.y + 45);
-        bgCtx.stroke();
-
-        const manoX = f.x + f.facing * 18;
-        const manoY = f.y - 5;
-        bgCtx.beginPath();
-        bgCtx.moveTo(f.x, f.y - 10);
-        bgCtx.lineTo(manoX, manoY);
-        bgCtx.stroke();
-
-        bgCtx.restore();
-      }
-
-      function loopBgDemo() {
-        bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-        const floorY = bgCanvas.height - 25;
-        bgCtx.strokeStyle = 'rgba(0, 240, 255, 0.2)';
-        bgCtx.lineWidth = 3;
-        bgCtx.beginPath();
-        bgCtx.moveTo(0, floorY);
-        bgCtx.lineTo(bgCanvas.width, floorY);
-        bgCtx.stroke();
-
-        updateDemoFighters();
-        demoFighters.forEach(drawDemoStickman);
-        requestAnimationFrame(loopBgDemo);
-      }
-      loopBgDemo();
-
-      // ================================================================
-      //  2. LÓGICA DE NAVEGACIÓN Y AUTENTICACIÓN
-      // ================================================================
-      const SCREENS = ['screen-landing', 'screen-auth', 'screen-menu', 'screen-scores', 'screen-game'];
-      function mostrarSolo(id) {
-        SCREENS.forEach((s) => {
-          document.getElementById(s).classList.toggle('active', s === id);
-        });
-      }
-
-      let usuarioActual = null;
-
-      function escapeHtml(str) {
-        const div = document.createElement('div');
-        div.innerText = str;
-        return div.innerHTML;
-      }
-
-      fetch('/api/me')
-        .then((r) => (r.ok ? r.json() : Promise.reject()))
-        .then((data) => {
-          usuarioActual = data.username;
-          mostrarMenu();
-        })
-        .catch(() => mostrarSolo('screen-landing'));
-
-      function mostrarMenu() {
-        document.getElementById('menu-username').innerText = usuarioActual;
-        mostrarSolo('screen-menu');
-      }
-
-      document.getElementById('btn-entrar-landing').addEventListener('click', () => mostrarSolo('screen-auth'));
-
-      let modoAuth = 'login';
-      const tabLogin = document.getElementById('tab-login');
-      const tabRegistro = document.getElementById('tab-registro');
-      const authSubmitBtn = document.getElementById('auth-submit');
-      const authErrorEl = document.getElementById('auth-error');
-
-      function actualizarTabsAuth() {
-        tabLogin.classList.toggle('active', modoAuth === 'login');
-        tabRegistro.classList.toggle('active', modoAuth === 'registro');
-        authSubmitBtn.innerText = modoAuth === 'login' ? 'Entrar →' : 'Crear cuenta →';
-        authErrorEl.innerText = '';
-      }
-      tabLogin.addEventListener('click', () => { modoAuth = 'login'; actualizarTabsAuth(); });
-      tabRegistro.addEventListener('click', () => { modoAuth = 'registro'; actualizarTabsAuth(); });
-
-      ['auth-username', 'auth-password'].forEach((id) => {
-        const el = document.getElementById(id);
-        el.addEventListener('keydown', (e) => e.stopPropagation());
-        el.addEventListener('keyup', (e) => e.stopPropagation());
       });
+      requestAnimationFrame(drawBg);
+    }
+    drawBg();
 
-      document.getElementById('auth-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('auth-username').value.trim();
-        const password = document.getElementById('auth-password').value;
-        authErrorEl.innerText = '';
+    /* ==========================================================================
+       JUEGO STICKMAN SUPREME CYBER
+       ========================================================================== */
+    const gameCanvas = document.getElementById('gameCanvas');
+    const ctx = gameCanvas.getContext('2d');
 
-        const endpoint = modoAuth === 'login' ? '/api/login' : '/api/register';
-        try {
-          const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password }),
-          });
-          const data = await res.json();
-          if (!res.ok) {
-            authErrorEl.innerText = data.error || 'Error al autenticar';
-            return;
-          }
-          usuarioActual = data.username;
-          document.getElementById('auth-password').value = '';
-          mostrarMenu();
-        } catch (err) {
-          authErrorEl.innerText = 'Error de conexión con el servidor';
-        }
-      });
+    let gameLoopId = null;
+    let keys = {};
 
-      document.getElementById('btn-volver-auth').addEventListener('click', () => mostrarSolo('screen-landing'));
+    window.addEventListener('keydown', e => keys[e.code] = true);
+    window.addEventListener('keyup', e => keys[e.code] = false);
 
-      document.getElementById('btn-jugar').addEventListener('click', () => {
-        mostrarSolo('screen-game');
-        iniciarJuego();
-      });
+    // Plataformas del Mapa
+    const platforms = [
+      { x: 0, y: 400, w: 800, h: 50 },
+      { x: 150, y: 280, w: 180, h: 15 },
+      { x: 470, y: 280, w: 180, h: 15 },
+      { x: 310, y: 180, w: 180, h: 15 }
+    ];
 
-      document.getElementById('btn-puntajes').addEventListener('click', async () => {
-        const lista = document.getElementById('scores-list');
-        lista.innerHTML = '<div style="color:#94a3b8; padding:20px; text-align:center;">Cargando tabla...</div>';
-        mostrarSolo('screen-scores');
-        try {
-          const res = await fetch('/api/ganadores');
-          const datos = await res.json();
-          if (!datos.length) {
-            lista.innerHTML = '<div style="color:#94a3b8; padding:20px; text-align:center;">No hay ganadores registrados</div>';
-            return;
-          }
-          lista.innerHTML = datos
-            .map(
-              (g, i) =>
-                '<div class="score-row">' +
-                '<span class="score-pos">#' + (i + 1) + '</span>' +
-                '<span class="score-name">' + escapeHtml(g.nombre) + '</span>' +
-                '<span class="score-pts">' + g.puntuacion + ' PTS</span>' +
-                '</div>'
-            )
-            .join('');
-        } catch (err) {
-          lista.innerHTML = '<div style="color:#ff0055; padding:20px; text-align:center;">Error al consultar servidor</div>';
-        }
-      });
+    let p1, p2, bullets, gameActive;
 
-      document.getElementById('btn-volver-scores').addEventListener('click', () => mostrarSolo('screen-menu'));
-
-      document.getElementById('menu-logout').addEventListener('click', async () => {
-        try { await fetch('/api/logout', { method: 'POST' }); } catch (err) {}
-        usuarioActual = null;
-        if (socket) { socket.disconnect(); socket = null; }
-        mostrarSolo('screen-landing');
-      });
-
-      document.getElementById('btn-salir-juego').addEventListener('click', () => {
-        if (socket) { socket.disconnect(); socket = null; }
-        mostrarSolo('screen-menu');
-      });
-
-      // ================================================================
-      //  3. MOTOR DE RENDEREADO Y JUEGO CANVA
-      // ================================================================
-      let socket = null;
-      const canvas = document.getElementById('gameCanvas');
-      const ctx = canvas.getContext('2d');
-      const FLOOR_Y = 400;
-      const CANVAS_WIDTH = 800;
-      const CANVAS_HEIGHT = 500;
-
-      let miId = null;
-      let jugadores = {};
-      let weaponPickups = {};
-      let bullets = {};
-      let mapIndex = 0;
-      let particles = [];
-      let screenShakeTime = 0;
-
-      const keys = { left: false, right: false, up: false, attack: false };
-
-      const MAPS = [
-        { name: 'Arena Clásica', bg: '#090d16', floorColor: '#1e293b', floorSegments: [[0, 800]], platforms: [] },
-        { name: 'Templo de Piedra', bg: '#171210', floorColor: '#44403c', floorSegments: [[0, 800]], platforms: [{ x: 140, y: 300, width: 150, height: 16 }, { x: 510, y: 300, width: 150, height: 16 }] },
-        { name: 'Plataformas Flotantes', bg: '#0b1329', floorColor: '#334155', floorSegments: [[0, 800]], platforms: [{ x: 70, y: 320, width: 120, height: 16 }, { x: 340, y: 250, width: 120, height: 16 }, { x: 610, y: 320, width: 120, height: 16 }] },
-        { name: 'Volcán Cyber', bg: '#230b0b', floorColor: '#991b1b', floorSegments: [[0, 800]], platforms: [{ x: 250, y: 310, width: 300, height: 16 }] },
-        { name: 'Hielo Eterno', bg: '#0a192f', floorColor: '#38bdf8', floorSegments: [[0, 800]], platforms: [{ x: 90, y: 280, width: 100, height: 16 }, { x: 610, y: 280, width: 100, height: 16 }, { x: 350, y: 340, width: 100, height: 16 }] }
-      ];
-
-      const WEAPON_VISUALS = {
-        espada: { name: 'Espada', color: '#e2e8f0', accent: '#00f0ff' },
-        espada_larga: { name: 'Espadón', color: '#f8fafc', accent: '#ff0055' },
-        pistola: { name: 'Pistola', color: '#475569', accent: '#ffcc00' },
-        fusil_asalto: { name: 'Fusil Asalto', color: '#334155', accent: '#00ff66' },
-        escopeta: { name: 'Escopeta', color: '#78350f', accent: '#ff8800' },
-        francotirador: { name: 'Sniper', color: '#1e293b', accent: '#ff0055' },
-        gancho: { name: 'Gancho', color: '#64748b', accent: '#00f0ff' },
+    function createStickman(x, color, name, isAI = false) {
+      return {
+        x: x,
+        y: 300,
+        vx: 0,
+        vy: 0,
+        radius: 12,
+        height: 45,
+        color: color,
+        hp: 100,
+        maxHp: 100,
+        isGrounded: false,
+        facing: x < 400 ? 1 : -1,
+        attacking: false,
+        attackCooldown: 0,
+        shootCooldown: 0,
+        name: name,
+        isAI: isAI
       };
+    }
 
-      const PICKUP_LETTER = { espada: 'E', espada_larga: 'S', pistola: 'P', fusil_asalto: 'F', escopeta: 'X', francotirador: 'R', gancho: 'G' };
+    function startGame(mode) {
+      currentGameMode = mode;
+      showScreen('screen-game');
+      document.getElementById('podium-overlay').style.display = 'none';
 
-      window.addEventListener('keydown', (e) => {
-        if (!socket) return;
-        let changed = false;
-        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { keys.left = true; changed = true; }
-        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { keys.right = true; changed = true; }
-        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { keys.up = true; changed = true; }
-        if (e.key === ' ' || e.key === 'e' || e.key === 'E') { keys.attack = true; changed = true; }
-        if (changed) socket.emit('input', keys);
-      });
+      const p1Name = currentUser || 'Jugador 1';
+      const p2Name = mode === 'ai' ? 'IA BOT 3000' : 'Jugador 2';
 
-      window.addEventListener('keyup', (e) => {
-        if (!socket) return;
-        let changed = false;
-        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { keys.left = false; changed = true; }
-        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { keys.right = false; changed = true; }
-        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { keys.up = false; changed = true; }
-        if (e.key === ' ' || e.key === 'e' || e.key === 'E') { keys.attack = false; changed = true; }
-        if (changed) socket.emit('input', keys);
-      });
+      document.getElementById('hud-p1-name').innerText = p1Name;
+      document.getElementById('hud-p2-name').innerText = p2Name;
 
-      function emitParticle(x, y, color, vx, vy, life) {
-        particles.push({ x, y, color, vx, vy, life, maxLife: life });
+      p1 = createStickman(180, '#00f0ff', p1Name);
+      p2 = createStickman(620, '#ff0055', p2Name, mode === 'ai');
+      bullets = [];
+
+      gameActive = true;
+
+      // Banner inicio
+      const banner = document.getElementById('round-banner');
+      banner.innerText = '¡FIGHT!';
+      banner.classList.add('show');
+      setTimeout(() => banner.classList.remove('show'), 1500);
+
+      if (gameLoopId) cancelAnimationFrame(gameLoopId);
+      updateGame();
+    }
+
+    function exitGame() {
+      gameActive = false;
+      if (gameLoopId) cancelAnimationFrame(gameLoopId);
+      showScreen('screen-menu');
+    }
+
+    function updateGame() {
+      if (!gameActive) return;
+
+      // --- MOVIMIENTO P1 ---
+      if (keys['KeyA']) { p1.vx = -4; p1.facing = -1; }
+      else if (keys['KeyD']) { p1.vx = 4; p1.facing = 1; }
+      else { p1.vx *= 0.8; }
+
+      if (keys['KeyW'] && p1.isGrounded) { p1.vy = -11; p1.isGrounded = false; }
+
+      if (keys['KeyF'] && p1.attackCooldown <= 0) {
+        p1.attacking = true;
+        p1.attackCooldown = 20;
+        checkMeleeHit(p1, p2);
       }
 
-      function triggerShake(frames) {
-        screenShakeTime = frames;
+      if (keys['KeyG'] && p1.shootCooldown <= 0) {
+        bullets.push({ x: p1.x + p1.facing * 20, y: p1.y - 20, vx: p1.facing * 10, color: '#00f0ff', owner: p1 });
+        p1.shootCooldown = 25;
       }
 
-      function iniciarJuego() {
-        if (socket) return;
-        socket = io();
+      // --- MOVIMIENTO P2 / IA ---
+      if (!p2.isAI) {
+        if (keys['ArrowLeft']) { p2.vx = -4; p2.facing = -1; }
+        else if (keys['ArrowRight']) { p2.vx = 4; p2.facing = 1; }
+        else { p2.vx *= 0.8; }
 
-        socket.on('init', (data) => {
-          miId = data.id;
-          socket.emit('setName', usuarioActual || 'Jugador');
-        });
+        if (keys['ArrowUp'] && p2.isGrounded) { p2.vy = -11; p2.isGrounded = false; }
 
-        socket.on('estadoJuego', (estado) => {
-          jugadores = estado.players;
-          weaponPickups = estado.weaponPickups;
-          bullets = estado.bullets || {};
-          mapIndex = estado.mapIndex;
+        if (keys['KeyK'] && p2.attackCooldown <= 0) {
+          p2.attacking = true;
+          p2.attackCooldown = 20;
+          checkMeleeHit(p2, p1);
+        }
 
-          document.getElementById('map-name').innerText = '🗺️ ARENA: ' + (MAPS[mapIndex] ? MAPS[mapIndex].name : '');
+        if (keys['KeyL'] && p2.shootCooldown <= 0) {
+          bullets.push({ x: p2.x + p2.facing * 20, y: p2.y - 20, vx: p2.facing * 10, color: '#ff0055', owner: p2 });
+          p2.shootCooldown = 25;
+        }
+      } else {
+        // Lógica Simple IA
+        let dx = p1.x - p2.x;
+        p2.facing = dx > 0 ? 1 : -1;
 
-          for (let role = 1; role <= 4; role++) {
-            let p = Object.values(jugadores).find((j) => j.role === role);
-            let bar = document.getElementById('p' + role + '-bar');
-            let score = document.getElementById('p' + role + '-score');
-            let weaponLabel = document.getElementById('p' + role + '-weapon');
-            if (p) {
-              bar.style.width = Math.max(p.health, 0) + '%';
-              score.innerText = p.score;
-              const wv = WEAPON_VISUALS[p.weapon] || WEAPON_VISUALS.espada;
-              weaponLabel.innerText = wv.name;
-            } else {
-              bar.style.width = '0%';
-              weaponLabel.innerText = '';
-            }
-          }
-
-          const miUsuario = jugadores[miId];
-          const rolTag = document.getElementById('rol-tag');
-          if (miUsuario) {
-            if (miUsuario.role >= 1 && miUsuario.role <= 4) {
-              rolTag.innerText = 'PELEADOR P' + miUsuario.role + ' — CONTROLES: WASD / FLECHAS + ESPACIO';
-              rolTag.style.color = miUsuario.color;
-            } else {
-              rolTag.innerText = 'SALA LLENA — MODO ESPECTADOR';
-              rolTag.style.color = '#ffcc00';
-            }
-          }
-        });
-
-        const roundBanner = document.getElementById('round-banner');
-        let roundBannerTimeout = null;
-
-        socket.on('rondaGanada', (data) => {
-          triggerShake(12);
-          if (roundBannerTimeout) clearTimeout(roundBannerTimeout);
-          const nombre = data.name ? data.name : 'P' + data.role;
-          roundBanner.innerText = '🏅 ' + nombre + ' GANÓ LA RONDA';
-          roundBanner.style.borderColor = data.color || '#00f0ff';
-          roundBanner.style.color = data.color || '#00f0ff';
-          roundBanner.classList.add('show');
-        });
-
-        socket.on('nuevaRonda', () => {
-          roundBannerTimeout = setTimeout(() => roundBanner.classList.remove('show'), 800);
-        });
-
-        socket.on('finDePartida', (data) => {
-          roundBanner.classList.remove('show');
-          mostrarPodio(data.podium);
-        });
-
-        socket.on('nuevaPartida', () => {
-          document.getElementById('podium-overlay').style.display = 'none';
-        });
-
-        requestAnimationFrame(gameLoop);
-      }
-
-      function mostrarPodio(podium) {
-        const overlay = document.getElementById('podium-overlay');
-        const blocks = document.getElementById('podium-blocks');
-        blocks.innerHTML = '';
-
-        const orden = [1, 0, 2];
-        const alturas = [100, 140, 70];
-        const medallas = ['🥈', '🥇', '🥉'];
-
-        orden.forEach((idxPodio, posVisual) => {
-          const jugador = podium[idxPodio];
-          const div = document.createElement('div');
-          div.className = 'podium-block';
-
-          if (jugador) {
-            div.innerHTML =
-              '<div class="podium-label" style="color:' + jugador.color + '">' + medallas[posVisual] + ' ' + escapeHtml(jugador.name || 'P' + jugador.role) + '</div>' +
-              '<div class="podium-score">' + jugador.score + ' pts</div>' +
-              '<div class="podium-pillar" style="height:' + alturas[posVisual] + 'px; background:' + jugador.color + ';">' + (idxPodio + 1) + '</div>';
-          } else {
-            div.innerHTML =
-              '<div class="podium-label" style="color:#666">--</div>' +
-              '<div class="podium-score">&nbsp;</div>' +
-              '<div class="podium-pillar" style="height:' + alturas[posVisual] + 'px; background:#333;">' + (idxPodio + 1) + '</div>';
-          }
-          blocks.appendChild(div);
-        });
-
-        overlay.style.display = 'flex';
-      }
-
-      // ================= RENDERIZADO DE STICKMAN MEJORADO =================
-      function drawWeapon(weaponKey, manoX, manoY, facing, isAttacking) {
-        const visual = WEAPON_VISUALS[weaponKey] || WEAPON_VISUALS.espada;
-        ctx.save();
-        ctx.translate(manoX, manoY);
-        ctx.scale(facing, 1);
-        ctx.rotate(isAttacking ? -0.2 : 0.35);
-
-        ctx.strokeStyle = visual.accent;
-        ctx.fillStyle = visual.color;
-        ctx.lineWidth = 3;
-        ctx.shadowColor = visual.accent;
-        ctx.shadowBlur = 8;
-
-        if (weaponKey.includes('espada')) {
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.lineTo(weaponKey === 'espada_larga' ? 42 : 32, 0);
-          ctx.stroke();
-
-          // Estela de golpe al atacar
-          if (isAttacking) {
-            ctx.fillStyle = visual.accent;
-            ctx.globalAlpha = 0.4;
-            ctx.beginPath();
-            ctx.arc(0, 0, weaponKey === 'espada_larga' ? 46 : 36, -Math.PI / 3, Math.PI / 3);
-            ctx.lineTo(0, 0);
-            ctx.fill();
-            ctx.globalAlpha = 1.0;
-          }
+        if (Math.abs(dx) > 40) {
+          p2.vx = p2.facing * 3;
         } else {
-          ctx.fillRect(0, -3, 16, 6);
-          if (isAttacking) {
-            // Muzzle flash
-            emitParticle(manoX + facing * 18, manoY, visual.accent, facing * 3, (Math.random() - 0.5) * 2, 6);
+          p2.vx = 0;
+          if (p2.attackCooldown <= 0) {
+            p2.attacking = true;
+            p2.attackCooldown = 25;
+            checkMeleeHit(p2, p1);
           }
         }
-        ctx.restore();
+
+        if (Math.abs(dx) < 250 && Math.random() < 0.03 && p2.shootCooldown <= 0) {
+          bullets.push({ x: p2.x + p2.facing * 20, y: p2.y - 20, vx: p2.facing * 10, color: '#ff0055', owner: p2 });
+          p2.shootCooldown = 35;
+        }
+
+        if (p1.y < p2.y - 20 && p2.isGrounded && Math.random() < 0.05) {
+          p2.vy = -11;
+          p2.isGrounded = false;
+        }
       }
 
-      function drawPlayer(p) {
-        ctx.save();
-        ctx.strokeStyle = p.color;
-        ctx.fillStyle = p.color;
-        ctx.lineWidth = 3.5;
-        ctx.shadowColor = p.color;
+      // Cooldowns
+      [p1, p2].forEach(p => {
+        if (p.attackCooldown > 0) p.attackCooldown--;
+        if (p.shootCooldown > 0) p.shootCooldown--;
+        if (p.attackCooldown < 10) p.attacking = false;
+      });
+
+      // Física y Colisiones
+      applyPhysics(p1);
+      applyPhysics(p2);
+
+      // Proyectiles
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i];
+        b.x += b.vx;
+
+        let target = b.owner === p1 ? p2 : p1;
+        if (Math.abs(b.x - target.x) < 20 && Math.abs(b.y - (target.y - 20)) < 30) {
+          target.hp -= 12;
+          target.vx += b.vx * 0.3;
+          bullets.splice(i, 1);
+          continue;
+        }
+
+        if (b.x < 0 || b.x > 800) bullets.splice(i, 1);
+      }
+
+      // Actualizar HUD
+      document.getElementById('hp-p1').style.width = Math.max(0, p1.hp) + '%';
+      document.getElementById('hp-p2').style.width = Math.max(0, p2.hp) + '%';
+
+      // Verificar Fin de Juego
+      if (p1.hp <= 0 || p2.hp <= 0) {
+        gameActive = false;
+        let winner = p1.hp > 0 ? p1.name : p2.name;
+        finishGame(winner);
+        return;
+      }
+
+      // Renderizar
+      render();
+
+      gameLoopId = requestAnimationFrame(updateGame);
+    }
+
+    function checkMeleeHit(attacker, defender) {
+      let reach = 40;
+      let hit = (attacker.facing === 1 && defender.x > attacker.x && defender.x < attacker.x + reach) ||
+                (attacker.facing === -1 && defender.x < attacker.x && defender.x > attacker.x - reach);
+      
+      if (hit && Math.abs(attacker.y - defender.y) < 30) {
+        defender.hp -= 15;
+        defender.vx = attacker.facing * 8;
+        defender.vy = -4;
+      }
+    }
+
+    function applyPhysics(p) {
+      p.vy += 0.55; // Gravedad
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // Límites de pantalla
+      if (p.x < 15) p.x = 15;
+      if (p.x > 785) p.x = 785;
+
+      p.isGrounded = false;
+
+      // Colisión Plataformas
+      platforms.forEach(plat => {
+        if (p.x >= plat.x - 10 && p.x <= plat.x + plat.w + 10) {
+          if (p.y >= plat.y && p.y - p.vy <= plat.y) {
+            p.y = plat.y;
+            p.vy = 0;
+            p.isGrounded = true;
+          }
+        }
+      });
+    }
+
+    function finishGame(winner) {
+      recordWin(winner);
+      document.getElementById('podium-winner').innerText = 'GANADOR: ' + winner.toUpperCase();
+      document.getElementById('podium-overlay').style.display = 'flex';
+    }
+
+    function render() {
+      // Limpiar Canvas
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, 800, 450);
+
+      // Dibujar Plataformas Cyber
+      platforms.forEach(plat => {
+        ctx.fillStyle = '#101827';
+        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(plat.x, plat.y, plat.w, plat.h);
+      });
+
+      // Dibujar Proyectiles
+      bullets.forEach(b => {
+        ctx.fillStyle = b.color;
+        ctx.shadowColor = b.color;
         ctx.shadowBlur = 10;
-
-        const facingDir = p.facing === 1 ? 1 : -1;
-        const speedX = p.vx || 0;
-        const speedY = p.vy || 0;
-        const isMoving = Math.abs(speedX) > 0.5;
-        const isJumping = Math.abs(speedY) > 0.5;
-
-        // Cabeza
         ctx.beginPath();
-        ctx.arc(p.x, p.y - 20, 10, 0, Math.PI * 2);
+        ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
         ctx.fill();
-
-        // Visor/Ojo del stickman
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(p.x + facingDir * 4, p.y - 22, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Cuerpo
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y - 10);
-        ctx.lineTo(p.x, p.y + 15);
-        ctx.stroke();
-
-        // Piernas animadas
-        const time = Date.now() * 0.015;
-        let leg1Offset = 0;
-        let leg2Offset = 0;
-
-        if (isJumping) {
-          leg1Offset = -8;
-          leg2Offset = 8;
-        } else if (isMoving) {
-          leg1Offset = Math.sin(time) * 12;
-          leg2Offset = -Math.sin(time) * 12;
-
-          // Polvo al correr
-          if (Math.random() < 0.2) {
-            emitParticle(p.x, p.y + 30, 'rgba(255,255,255,0.4)', -facingDir * 1.5, -Math.random(), 10);
-          }
-        }
-
-        ctx.beginPath();
-        // Pierna 1
-        ctx.moveTo(p.x, p.y + 15);
-        ctx.lineTo(p.x - 6 + leg1Offset, p.y + 32);
-        // Pierna 2
-        ctx.moveTo(p.x, p.y + 15);
-        ctx.lineTo(p.x + 6 + leg2Offset, p.y + 32);
-        ctx.stroke();
-
-        // Mano
-        const manoX = p.x + facingDir * 12;
-        const manoY = p.y - 2;
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y - 5);
-        ctx.lineTo(manoX, manoY);
-        ctx.stroke();
-
-        drawWeapon(p.weapon, manoX, manoY, facingDir, p.isAttacking);
-
-        // Nombre encima
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '700 12px Rajdhani, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.shadowBlur = 4;
-        ctx.shadowColor = '#000';
-        ctx.fillText(p.name || 'P' + p.role, p.x, p.y - 36);
-        ctx.restore();
-      }
-
-      function gameLoop() {
-        if (!socket) return;
-
-        ctx.save();
-        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-        // Sacudida de pantalla
-        if (screenShakeTime > 0) {
-          screenShakeTime--;
-          ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
-        }
-
-        const currentMap = MAPS[mapIndex] || MAPS[0];
-
-        // Fondo Mapa
-        ctx.fillStyle = currentMap.bg;
-        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-        // Rejilla Cyberpunk sutil
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
-        ctx.lineWidth = 1;
-        for (let x = 0; x < CANVAS_WIDTH; x += 40) {
-          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT); ctx.stroke();
-        }
-
-        // Suelo y Plataformas
-        ctx.fillStyle = currentMap.floorColor;
-        ctx.shadowColor = currentMap.floorColor;
-        ctx.shadowBlur = 12;
-
-        if (currentMap.floorSegments) {
-          currentMap.floorSegments.forEach(([start, end]) => {
-            ctx.fillRect(start, FLOOR_Y, end - start, CANVAS_HEIGHT - FLOOR_Y);
-          });
-        }
-
-        if (currentMap.platforms) {
-          currentMap.platforms.forEach((plat) => {
-            ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
-          });
-        }
         ctx.shadowBlur = 0;
+      });
 
-        // Cajas de Armas
-        Object.values(weaponPickups).forEach((pickup) => {
-          ctx.save();
-          ctx.fillStyle = '#00f0ff';
-          ctx.shadowColor = '#00f0ff';
-          ctx.shadowBlur = 12;
-          ctx.beginPath();
-          ctx.arc(pickup.x, pickup.y, 12, 0, Math.PI * 2);
-          ctx.fill();
+      // Dibujar Stickmen
+      drawStickman(p1);
+      drawStickman(p2);
+    }
 
-          ctx.fillStyle = '#000';
-          ctx.font = '900 13px Orbitron, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(PICKUP_LETTER[pickup.type] || '?', pickup.x, pickup.y);
-          ctx.restore();
-        });
+    function drawStickman(p) {
+      ctx.save();
+      ctx.strokeStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 12;
+      ctx.lineWidth = 3;
 
-        // Balas y proyectiles
-        Object.values(bullets).forEach((b) => {
-          ctx.save();
-          ctx.fillStyle = '#ff0055';
-          ctx.shadowColor = '#ff0055';
-          ctx.shadowBlur = 10;
-          ctx.beginPath();
-          ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
-          ctx.fill();
+      let headY = p.y - 40;
 
-          // Estela de bala
-          emitParticle(b.x, b.y, 'rgba(255, 0, 85, 0.5)', -b.vx * 0.2, 0, 5);
-          ctx.restore();
-        });
+      // Cabeza
+      ctx.beginPath();
+      ctx.arc(p.x, headY, 8, 0, Math.PI * 2);
+      ctx.stroke();
 
-        // Partículas
-        for (let i = particles.length - 1; i >= 0; i--) {
-          const pt = particles[i];
-          pt.x += pt.vx;
-          pt.y += pt.vy;
-          pt.life--;
+      // Cuerpo
+      ctx.beginPath();
+      ctx.moveTo(p.x, headY + 8);
+      ctx.lineTo(p.x, p.y - 15);
+      ctx.stroke();
 
-          ctx.save();
-          ctx.fillStyle = pt.color;
-          ctx.globalAlpha = Math.max(pt.life / pt.maxLife, 0);
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
+      // Piernas
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y - 15);
+      ctx.lineTo(p.x - 10, p.y);
+      ctx.moveTo(p.x, p.y - 15);
+      ctx.lineTo(p.x + 10, p.y);
+      ctx.stroke();
 
-          if (pt.life <= 0) particles.splice(i, 1);
-        }
+      // Brazos / Espada Cyber
+      ctx.beginPath();
+      ctx.moveTo(p.x, headY + 14);
+      let armX = p.x + p.facing * (p.attacking ? 25 : 12);
+      ctx.lineTo(armX, headY + 18);
+      ctx.stroke();
 
-        // Jugadores (Corregida la validación de estado con health > 0)
-        Object.values(jugadores).forEach((p) => {
-          if (p.health > 0) drawPlayer(p);
-        });
-
-        ctx.restore();
-        requestAnimationFrame(gameLoop);
+      if (p.attacking) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(armX, headY + 18);
+        ctx.lineTo(armX + p.facing * 20, headY + 5);
+        ctx.stroke();
       }
-    </script>
-  </body>
+
+      ctx.restore();
+    }
+  </script>
+</body>
 </html>
