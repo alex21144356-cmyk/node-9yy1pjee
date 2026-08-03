@@ -6,9 +6,7 @@
   <title>Stickman — Supreme Cyber Duelists</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
@@ -21,20 +19,14 @@
       font-family: 'Rajdhani', sans-serif;
       overflow: hidden;
     }
-
-    /* ===================== CANVAS DE FONDO ===================== */
     #bg-canvas {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
       z-index: 0;
       pointer-events: none;
       filter: blur(1px);
     }
-
-    /* ===================== NAVEGACIÓN Y PANTALLAS ===================== */
     .screen {
       display: none;
       flex-direction: column;
@@ -42,16 +34,8 @@
       width: 100%;
       z-index: 10;
     }
-    .screen.active {
-      display: flex;
-    }
-
-    /* ===================== LANDING SCREEN ===================== */
-    #screen-landing {
-      gap: 24px;
-      text-align: center;
-    }
-
+    .screen.active { display: flex; }
+    #screen-landing { gap: 24px; text-align: center; }
     .arcade-badge {
       background: linear-gradient(90deg, #ff0055, #ff5500);
       color: #fff;
@@ -64,7 +48,6 @@
       clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
       box-shadow: 0 0 20px rgba(255, 0, 85, 0.7);
     }
-
     #landing-title {
       font-family: 'Orbitron', sans-serif;
       font-size: 56px;
@@ -77,7 +60,6 @@
     }
     #landing-title .neon-cyan { color: #00f0ff; }
     #landing-title .neon-pink { color: #ff0055; }
-
     #landing-subtitle {
       font-size: 14px;
       letter-spacing: 8px;
@@ -85,7 +67,6 @@
       text-transform: uppercase;
       text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
     }
-
     .arcade-btn {
       font-family: 'Orbitron', sans-serif;
       background: linear-gradient(135deg, #00f0ff 0%, #0077ff 100%);
@@ -106,11 +87,7 @@
       filter: brightness(1.2);
       box-shadow: 0 0 45px rgba(0, 240, 255, 0.9);
     }
-    .arcade-btn:active {
-      transform: scale(0.98);
-    }
-
-    /* ===================== TARJETAS CRISTAL (AUTH Y MENÚ) ===================== */
+    .arcade-btn:active { transform: scale(0.98); }
     .glass-card {
       width: 420px;
       max-width: 90vw;
@@ -140,7 +117,6 @@
       margin-bottom: 22px;
       text-transform: uppercase;
     }
-
     .tabs { display: flex; margin-bottom: 22px; border-bottom: 2px solid rgba(255, 255, 255, 0.1); }
     .tab-btn {
       flex: 1;
@@ -158,7 +134,6 @@
       transition: all 0.2s ease;
     }
     .tab-btn.active { color: #ff0055; border-bottom-color: #ff0055; text-shadow: 0 0 10px rgba(255, 0, 85, 0.7); }
-
     .field-label {
       display: block;
       text-align: left;
@@ -180,7 +155,6 @@
       font-family: 'Rajdhani', sans-serif;
     }
     .field-input:focus { outline: none; border-color: #ff0055; box-shadow: 0 0 12px rgba(255, 0, 85, 0.5); }
-
     .auth-submit {
       width: 100%;
       margin-top: 24px;
@@ -197,14 +171,7 @@
       box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
     }
     .auth-submit:hover { filter: brightness(1.2); }
-
-    .auth-error {
-      margin-top: 14px;
-      font-size: 13px;
-      color: #ff3366;
-      min-height: 16px;
-    }
-
+    .auth-error { margin-top: 14px; font-size: 13px; color: #ff3366; min-height: 16px; }
     .link-btn {
       margin-top: 18px;
       background: none;
@@ -215,8 +182,6 @@
       cursor: pointer;
     }
     .link-btn:hover { color: #fff; }
-
-    /* ===================== MENÚ PRINCIPAL ===================== */
     #screen-menu { gap: 18px; text-align: center; }
     .welcome-pill {
       border: 1px solid rgba(0, 240, 255, 0.4);
@@ -229,14 +194,7 @@
       letter-spacing: 1px;
     }
     .welcome-pill b { color: #00f0ff; }
-
-    .menu-btn-group {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      align-items: center;
-    }
-
+    .menu-btn-group { display: flex; flex-direction: column; gap: 12px; align-items: center; }
     .menu-btn {
       width: 300px;
       font-family: 'Orbitron', sans-serif;
@@ -260,7 +218,6 @@
       color: #fff;
     }
     .menu-btn:hover { transform: scale(1.03); }
-
     #menu-logout {
       margin-top: 8px;
       background: none;
@@ -272,14 +229,7 @@
       text-transform: uppercase;
     }
     #menu-logout:hover { color: #ff0055; }
-
-    /* ===================== TABLA DE PUNTAJES ===================== */
-    #scores-list {
-      max-height: 250px;
-      overflow-y: auto;
-      text-align: left;
-      margin-top: 10px;
-    }
+    #scores-list { max-height: 250px; overflow-y: auto; text-align: left; margin-top: 10px; }
     .score-row {
       display: flex;
       align-items: center;
@@ -291,8 +241,6 @@
     .score-pos { width: 34px; color: #ff0055; font-weight: 900; font-family: 'Orbitron', sans-serif; }
     .score-name { flex: 1; font-weight: bold; }
     .score-pts { color: #00f0ff; font-weight: 900; font-family: 'Orbitron', sans-serif; }
-
-    /* ===================== PANTALLA DE JUEGO ===================== */
     #screen-game { gap: 0; }
     #hud {
       display: flex;
@@ -329,7 +277,6 @@
     .health-bar { height: 100%; width: 100%; transition: width 0.15s ease-out; }
     #hp-p1 { background: linear-gradient(90deg, #00f0ff, #0077ff); }
     #hp-p2 { background: linear-gradient(90deg, #ff0055, #ff5500); }
-
     #map-name {
       font-family: 'Orbitron', sans-serif;
       width: 800px;
@@ -342,7 +289,6 @@
       font-weight: bold;
       text-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
     }
-
     #canvas-wrap { position: relative; }
     canvas#gameCanvas {
       background: #090d16;
@@ -372,8 +318,6 @@
       text-transform: uppercase;
     }
     #btn-salir-juego:hover { color: #ff0055; }
-
-    /* BANNER DE RONDA & PODIO */
     #round-banner {
       font-family: 'Orbitron', sans-serif;
       position: absolute;
@@ -393,14 +337,11 @@
       box-shadow: 0 0 30px rgba(0, 240, 255, 0.4);
     }
     #round-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
     #podium-overlay {
       display: none;
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       background: rgba(5, 8, 18, 0.94);
       flex-direction: column;
       justify-content: center;
@@ -441,10 +382,8 @@
 </head>
 <body>
 
-  <!-- CANVAS DE FONDO -->
   <canvas id="bg-canvas"></canvas>
 
-  <!-- PANTALLA 1: LANDING -->
   <div id="screen-landing" class="screen active">
     <div class="arcade-badge">Cyber Arcade Edition</div>
     <h1 id="landing-title">
@@ -455,24 +394,19 @@
     <button class="arcade-btn" onclick="goToAuth()">Entrar al Juego</button>
   </div>
 
-  <!-- PANTALLA 2: AUTH / REGISTRO -->
   <div id="screen-auth" class="screen">
     <div class="glass-card">
       <h2>Acceso Cybernetico</h2>
       <div class="card-sub">Inicia sesión para combatir</div>
-      
       <div class="tabs">
         <button id="tab-login" class="tab-btn active" onclick="switchAuthTab('login')">Ingresar</button>
         <button id="tab-register" class="tab-btn" onclick="switchAuthTab('register')">Registro</button>
       </div>
-
       <form id="auth-form" onsubmit="handleAuthSubmit(event)">
         <label class="field-label">Usuario</label>
         <input type="text" id="auth-user" class="field-input" placeholder="Nombre de guerrero" required />
-        
         <label class="field-label">Contraseña</label>
         <input type="password" id="auth-pass" class="field-input" placeholder="••••••••" required />
-
         <div id="auth-error" class="auth-error"></div>
         <button type="submit" id="auth-submit-btn" class="auth-submit">Iniciar Sesión</button>
       </form>
@@ -480,13 +414,11 @@
     </div>
   </div>
 
-  <!-- PANTALLA 3: MENÚ PRINCIPAL -->
   <div id="screen-menu" class="screen">
     <div class="glass-card">
       <div class="welcome-pill">Bienvenido, <b id="user-display">CyberPlayer</b></div>
       <h2>Menú Principal</h2>
       <div class="card-sub">Selecciona el modo de batalla</div>
-
       <div class="menu-btn-group">
         <button class="menu-btn primary" onclick="startGame('pvp')">1 VS 1 Local</button>
         <button class="menu-btn primary" style="background: linear-gradient(90deg, #ff0055, #ff5500);" onclick="startGame('ai')">Jugador VS IA</button>
@@ -496,7 +428,6 @@
     </div>
   </div>
 
-  <!-- PANTALLA 4: TABLA DE PUNTAJES -->
   <div id="screen-scores" class="screen">
     <div class="glass-card">
       <h2>Puntajes Cyber</h2>
@@ -506,23 +437,18 @@
     </div>
   </div>
 
-  <!-- PANTALLA 5: JUEGO -->
   <div id="screen-game" class="screen">
     <div id="hud">
       <div class="player-stats">
         <div class="name-line" id="hud-p1-name" style="color:#00f0ff;">Jugador 1</div>
         <div class="weapon-line" id="hud-p1-weapon">Sable Cyber & Lazo</div>
-        <div class="health-bar-container">
-          <div id="hp-p1" class="health-bar"></div>
-        </div>
+        <div class="health-bar-container"><div id="hp-p1" class="health-bar"></div></div>
       </div>
       <div style="font-family:'Orbitron'; font-weight:900; color:#ff0055; font-size:22px; align-self:center;">VS</div>
       <div class="player-stats">
         <div class="name-line" id="hud-p2-name" style="color:#ff0055;">Jugador 2</div>
         <div class="weapon-line" id="hud-p2-weapon">Sable Cyber & Lazo</div>
-        <div class="health-bar-container">
-          <div id="hp-p2" class="health-bar"></div>
-        </div>
+        <div class="health-bar-container"><div id="hp-p2" class="health-bar"></div></div>
       </div>
     </div>
 
@@ -534,7 +460,7 @@
         <div id="podium-title">¡COMBATE FINALIZADO!</div>
         <div id="podium-winner">GANADOR: JUGADOR 1</div>
         <div class="podium-pillar">1</div>
-        <button class="arcade-btn" style="margin-top:25px; font-size:14px; padding:10px 30px;" onclick="exitGame()">Continuar</button>
+        <button class="arcade-btn" style="margin-top:25px; font-size:14px; padding:10px 30px;" onclick="startGame(currentGameMode)">Siguiente Ronda</button>
       </div>
       <canvas id="gameCanvas" width="800" height="450"></canvas>
     </div>
@@ -544,9 +470,230 @@
   </div>
 
   <script>
-    /* ==========================================================================
-       GESTIÓN DE PANTALLAS Y USUARIOS (LocalStorage)
-       ========================================================================== */
+    class Platform {
+      constructor(x, y, w, h) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+      }
+      draw(ctx) {
+        ctx.fillStyle = '#101827';
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(this.x, this.y, this.w, this.h);
+      }
+    }
+
+    class Stickman {
+      constructor(x, color, name, isAI = false) {
+        this.x = x;
+        this.y = 390;
+        this.vx = 0;
+        this.vy = 0;
+        this.color = color;
+        this.hp = 100;
+        this.maxHp = 100;
+        this.isGrounded = false;
+        this.facing = x < 400 ? 1 : -1;
+        this.attacking = false;
+        this.attackCooldown = 0;
+        this.name = name;
+        this.isAI = isAI;
+        this.hook = {
+          active: false,
+          attached: false,
+          x: 0, y: 0,
+          vx: 0, vy: 0
+        };
+      }
+
+      launchHook() {
+        this.hook.active = true;
+        this.hook.attached = false;
+        this.hook.x = this.x;
+        this.hook.y = this.y - 20;
+        let angle = this.facing === 1 ? -0.3 : Math.PI + 0.3;
+        this.hook.vx = Math.cos(angle) * 16;
+        this.hook.vy = Math.sin(angle) * 16;
+      }
+
+      releaseHook() {
+        this.hook.active = false;
+        this.hook.attached = false;
+      }
+
+      updateHook(platforms) {
+        if (!this.hook.active) return;
+        if (!this.hook.attached) {
+          this.hook.x += this.hook.vx;
+          this.hook.y += this.hook.vy;
+
+          platforms.forEach(plat => {
+            if (this.hook.x >= plat.x && this.hook.x <= plat.x + plat.w &&
+                this.hook.y >= plat.y && this.hook.y <= plat.y + plat.h) {
+              this.hook.attached = true;
+              this.hook.vx = 0;
+              this.hook.vy = 0;
+            }
+          });
+
+          if (this.hook.x < 0 || this.hook.x > 800 || this.hook.y < 0 || this.hook.y > 450) {
+            this.releaseHook();
+          }
+        } else {
+          let dx = this.hook.x - this.x;
+          let dy = (this.hook.y - 15) - this.y;
+          this.vx += dx * 0.08;
+          this.vy += dy * 0.08;
+          this.vx *= 0.82;
+          this.vy *= 0.82;
+        }
+      }
+
+      applyPhysics(platforms) {
+        if (!this.hook.attached) {
+          this.vy += 0.55;
+        }
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.x < 15) this.x = 15;
+        if (this.x > 785) this.x = 785;
+
+        this.isGrounded = false;
+
+        platforms.forEach(plat => {
+          if (this.x >= plat.x - 10 && this.x <= plat.x + plat.w + 10) {
+            if (this.y >= plat.y - 2 && this.y - this.vy <= plat.y + 12) {
+              this.y = plat.y;
+              this.vy = 0;
+              this.isGrounded = true;
+              if (this.hook.attached) this.releaseHook();
+            }
+          }
+        });
+      }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.strokeStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 10;
+        ctx.lineWidth = 3;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px Orbitron';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.name, this.x, this.y - 52);
+
+        let legHeight = 16;
+        let torsoHeight = 22;
+        let headRadius = 8;
+        let hipY = this.y - legHeight;
+        let neckY = hipY - torsoHeight;
+        let headY = neckY - headRadius;
+
+        ctx.beginPath();
+        ctx.arc(this.x, headY, headRadius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(this.x, neckY);
+        ctx.lineTo(this.x, hipY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(this.x, hipY);
+        ctx.lineTo(this.x - 10, this.y);
+        ctx.moveTo(this.x, hipY);
+        ctx.lineTo(this.x + 10, this.y);
+        ctx.stroke();
+
+        let shoulderY = neckY + 5;
+        ctx.beginPath();
+        ctx.moveTo(this.x, shoulderY);
+        let armX = this.x + this.facing * (this.attacking ? 22 : 12);
+        ctx.lineTo(armX, shoulderY + 4);
+        ctx.stroke();
+
+        if (this.attacking) {
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(armX, shoulderY + 4);
+          ctx.lineTo(armX + this.facing * 20, shoulderY - 8);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+
+    class WeaponCRUD {
+      constructor() {
+        this.weapons = JSON.parse(localStorage.getItem('cyber_weapons') || JSON.stringify([
+          { id: 1, name: 'Sable Cyber', damage: 15 },
+          { id: 2, name: 'Lazo Gancho', damage: 0 }
+        ]));
+      }
+      create(name, damage) {
+        this.weapons.push({ id: Date.now(), name, damage });
+        this.save();
+      }
+      read() { return this.weapons; }
+      update(id, newName, newDamage) {
+        this.weapons = this.weapons.map(w => w.id === id ? { ...w, name: newName, damage: newDamage } : w);
+        this.save();
+      }
+      delete(id) {
+        this.weapons = this.weapons.filter(w => w.id !== id);
+        this.save();
+      }
+      save() { localStorage.setItem('cyber_weapons', JSON.stringify(this.weapons)); }
+    }
+    const weaponManager = new WeaponCRUD();
+
+    function calcularTrayectoriaRecursiva(x, y, vx, vy, pasosRestantes) {
+      if (pasosRestantes <= 0) return { x, y };
+      return calcularTrayectoriaRecursiva(x + vx, y + vy + 0.55, vx * 0.9, vy * 0.9, pasosRestantes - 1);
+    }
+
+    // LISTA DE MAPAS / ARENAS ROTATIVAS
+    const maps = [
+      {
+        name: "ARENA: MATRIX GRID 01",
+        platforms: [
+          { x: 0, y: 390, w: 800, h: 60 },
+          { x: 150, y: 280, w: 180, h: 15 },
+          { x: 470, y: 280, w: 180, h: 15 },
+          { x: 310, y: 180, w: 180, h: 15 }
+        ]
+      },
+      {
+        name: "ARENA: CYBER TOWERS",
+        platforms: [
+          { x: 0, y: 390, w: 800, h: 60 },
+          { x: 100, y: 300, w: 140, h: 15 },
+          { x: 560, y: 300, w: 140, h: 15 },
+          { x: 250, y: 200, w: 300, h: 15 },
+          { x: 350, y: 100, w: 100, h: 15 }
+        ]
+      },
+      {
+        name: "ARENA: NEON BRIDGE",
+        platforms: [
+          { x: 0, y: 390, w: 800, h: 60 },
+          { x: 200, y: 320, w: 400, h: 15 },
+          { x: 100, y: 210, w: 150, h: 15 },
+          { x: 550, y: 210, w: 150, h: 15 }
+        ]
+      }
+    ];
+
+    let currentMapIndex = -1;
+    let platforms = [];
+
     let currentUser = null;
     let authMode = 'login';
     let currentGameMode = 'pvp';
@@ -556,9 +703,7 @@
       document.getElementById(id).classList.add('active');
     }
 
-    function goToAuth() {
-      showScreen('screen-auth');
-    }
+    function goToAuth() { showScreen('screen-auth'); }
 
     function switchAuthTab(mode) {
       authMode = mode;
@@ -637,12 +782,8 @@
       }
     }
 
-    /* ==========================================================================
-       CANVAS DE FONDO ANIMADO
-       ========================================================================== */
     const bgCanvas = document.getElementById('bg-canvas');
     const bgCtx = bgCanvas.getContext('2d');
-
     function resizeBg() {
       bgCanvas.width = window.innerWidth;
       bgCanvas.height = window.innerHeight;
@@ -661,7 +802,6 @@
     function drawBg() {
       bgCtx.fillStyle = 'rgba(5, 7, 13, 0.2)';
       bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
-
       bgCtx.fillStyle = '#00f0ff';
       bgParticles.forEach(p => {
         p.x += p.vx;
@@ -670,7 +810,6 @@
         if(p.x > bgCanvas.width) p.x = 0;
         if(p.y < 0) p.y = bgCanvas.height;
         if(p.y > bgCanvas.height) p.y = 0;
-
         bgCtx.beginPath();
         bgCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         bgCtx.fill();
@@ -679,58 +818,27 @@
     }
     drawBg();
 
-    /* ==========================================================================
-       JUEGO STICKMAN SUPREME CYBER
-       ========================================================================== */
     const gameCanvas = document.getElementById('gameCanvas');
     const ctx = gameCanvas.getContext('2d');
-
     let gameLoopId = null;
     let keys = {};
 
     window.addEventListener('keydown', e => keys[e.code] = true);
     window.addEventListener('keyup', e => keys[e.code] = false);
 
-    // Plataformas del Mapa
-    const platforms = [
-      { x: 0, y: 390, w: 800, h: 60 },
-      { x: 150, y: 280, w: 180, h: 15 },
-      { x: 470, y: 280, w: 180, h: 15 },
-      { x: 310, y: 180, w: 180, h: 15 }
-    ];
-
     let p1, p2, gameActive;
-
-    function createStickman(x, color, name, isAI = false) {
-      return {
-        x: x,
-        y: 390,
-        vx: 0,
-        vy: 0,
-        color: color,
-        hp: 100,
-        maxHp: 100,
-        isGrounded: false,
-        facing: x < 400 ? 1 : -1,
-        attacking: false,
-        attackCooldown: 0,
-        name: name,
-        isAI: isAI,
-        hook: {
-          active: false,
-          attached: false,
-          x: 0,
-          y: 0,
-          vx: 0,
-          vy: 0
-        }
-      };
-    }
 
     function startGame(mode) {
       currentGameMode = mode;
       showScreen('screen-game');
       document.getElementById('podium-overlay').style.display = 'none';
+
+      // Rotar al siguiente mapa automáticamente
+      currentMapIndex = (currentMapIndex + 1) % maps.length;
+      let selectedMap = maps[currentMapIndex];
+
+      document.getElementById('map-name').innerText = selectedMap.name;
+      platforms = selectedMap.platforms.map(p => new Platform(p.x, p.y, p.w, p.h));
 
       const p1Name = currentUser || 'Jugador 1';
       const p2Name = mode === 'ai' ? 'IA BOT 3000' : 'Jugador 2';
@@ -738,13 +846,12 @@
       document.getElementById('hud-p1-name').innerText = p1Name;
       document.getElementById('hud-p2-name').innerText = p2Name;
 
-      p1 = createStickman(180, '#00f0ff', p1Name);
-      p2 = createStickman(620, '#ff0055', p2Name, mode === 'ai');
+      p1 = new Stickman(180, '#00f0ff', p1Name);
+      p2 = new Stickman(620, '#ff0055', p2Name, mode === 'ai');
 
       gameActive = true;
-
       const banner = document.getElementById('round-banner');
-      banner.innerText = '¡FIGHT!';
+      banner.innerText = '¡' + selectedMap.name + '!';
       banner.classList.add('show');
       setTimeout(() => banner.classList.remove('show'), 1500);
 
@@ -761,7 +868,6 @@
     function updateGame() {
       if (!gameActive) return;
 
-      // --- CONTROLES P1 ---
       if (keys['KeyA']) { p1.vx = -4; p1.facing = -1; }
       else if (keys['KeyD']) { p1.vx = 4; p1.facing = 1; }
       else { p1.vx *= 0.8; }
@@ -769,7 +875,7 @@
       if (keys['KeyW'] && p1.isGrounded) { 
         p1.vy = -11; 
         p1.isGrounded = false;
-        if(p1.hook.attached) releaseHook(p1);
+        if(p1.hook.attached) p1.releaseHook();
       }
 
       if (keys['KeyF'] && p1.attackCooldown <= 0) {
@@ -779,15 +885,11 @@
       }
 
       if (keys['KeyG']) {
-        if (!p1.hook.active) {
-          launchHook(p1);
-        } else {
-          releaseHook(p1);
-        }
-        keys['KeyG'] = false; // Evitar repetición automática
+        if (!p1.hook.active) p1.launchHook();
+        else p1.releaseHook();
+        keys['KeyG'] = false;
       }
 
-      // --- CONTROLES P2 / IA ---
       if (!p2.isAI) {
         if (keys['ArrowLeft']) { p2.vx = -4; p2.facing = -1; }
         else if (keys['ArrowRight']) { p2.vx = 4; p2.facing = 1; }
@@ -796,7 +898,7 @@
         if (keys['ArrowUp'] && p2.isGrounded) { 
           p2.vy = -11; 
           p2.isGrounded = false;
-          if(p2.hook.attached) releaseHook(p2);
+          if(p2.hook.attached) p2.releaseHook();
         }
 
         if (keys['KeyK'] && p2.attackCooldown <= 0) {
@@ -806,18 +908,13 @@
         }
 
         if (keys['KeyL']) {
-          if (!p2.hook.active) {
-            launchHook(p2);
-          } else {
-            releaseHook(p2);
-          }
+          if (!p2.hook.active) p2.launchHook();
+          else p2.releaseHook();
           keys['KeyL'] = false;
         }
       } else {
-        // IA Lógica básica
         let dx = p1.x - p2.x;
         p2.facing = dx > 0 ? 1 : -1;
-
         if (Math.abs(dx) > 40) {
           p2.vx = p2.facing * 3;
         } else {
@@ -828,30 +925,25 @@
             checkMeleeHit(p2, p1);
           }
         }
-
         if (p1.y < p2.y - 30 && p2.isGrounded && Math.random() < 0.04) {
           p2.vy = -11;
           p2.isGrounded = false;
         }
       }
 
-      // Cooldowns de ataques
       [p1, p2].forEach(p => {
         if (p.attackCooldown > 0) p.attackCooldown--;
         if (p.attackCooldown < 10) p.attacking = false;
       });
 
-      // Física y Ganchos
-      applyPhysics(p1);
-      applyPhysics(p2);
-      updateHook(p1);
-      updateHook(p2);
+      p1.applyPhysics(platforms);
+      p2.applyPhysics(platforms);
+      p1.updateHook(platforms);
+      p2.updateHook(platforms);
 
-      // Actualizar HUD
       document.getElementById('hp-p1').style.width = Math.max(0, p1.hp) + '%';
       document.getElementById('hp-p2').style.width = Math.max(0, p2.hp) + '%';
 
-      // Fin de Juego
       if (p1.hp <= 0 || p2.hp <= 0) {
         gameActive = false;
         let winner = p1.hp > 0 ? p1.name : p2.name;
@@ -863,53 +955,6 @@
       gameLoopId = requestAnimationFrame(updateGame);
     }
 
-    function launchHook(p) {
-      p.hook.active = true;
-      p.hook.attached = false;
-      p.hook.x = p.x;
-      p.hook.y = p.y - 20;
-      let angle = p.facing === 1 ? -0.3 : Math.PI + 0.3;
-      p.hook.vx = Math.cos(angle) * 16;
-      p.hook.vy = Math.sin(angle) * 16;
-    }
-
-    function releaseHook(p) {
-      p.hook.active = false;
-      p.hook.attached = false;
-    }
-
-    function updateHook(p) {
-      if (!p.hook.active) return;
-
-      if (!p.hook.attached) {
-        p.hook.x += p.hook.vx;
-        p.hook.y += p.hook.vy;
-
-        // Comprobar colisión con plataformas
-        platforms.forEach(plat => {
-          if (p.hook.x >= plat.x && p.hook.x <= plat.x + plat.w &&
-              p.hook.y >= plat.y && p.hook.y <= plat.y + plat.h) {
-            p.hook.attached = true;
-            p.hook.vx = 0;
-            p.hook.vy = 0;
-          }
-        });
-
-        // Desactivar si sale de la pantalla
-        if (p.hook.x < 0 || p.hook.x > 800 || p.hook.y < 0 || p.hook.y > 450) {
-          releaseHook(p);
-        }
-      } else {
-        // Tracción hacia el punto enganchado (Lazo)
-        let dx = p.hook.x - p.x;
-        let dy = (p.hook.y - 15) - p.y;
-        p.vx += dx * 0.08;
-        p.vy += dy * 0.08;
-        p.vx *= 0.82;
-        p.vy *= 0.82;
-      }
-    }
-
     function checkMeleeHit(attacker, defender) {
       let reach = 40;
       let hit = (attacker.facing === 1 && defender.x > attacker.x && defender.x < attacker.x + reach) ||
@@ -919,33 +964,8 @@
         defender.hp -= 15;
         defender.vx = attacker.facing * 8;
         defender.vy = -4;
-        if(defender.hook.attached) releaseHook(defender);
+        if(defender.hook.attached) defender.releaseHook();
       }
-    }
-
-    function applyPhysics(p) {
-      if (!p.hook.attached) {
-        p.vy += 0.55; // Gravedad normal
-      }
-      p.x += p.vx;
-      p.y += p.vy;
-
-      if (p.x < 15) p.x = 15;
-      if (p.x > 785) p.x = 785;
-
-      p.isGrounded = false;
-
-      // Colisión precisa con plataformas (ajustada para cero flotación)
-      platforms.forEach(plat => {
-        if (p.x >= plat.x - 10 && p.x <= plat.x + plat.w + 10) {
-          if (p.y >= plat.y - 2 && p.y - p.vy <= plat.y + 12) {
-            p.y = plat.y; 
-            p.vy = 0;
-            p.isGrounded = true;
-            if (p.hook.attached) releaseHook(p); // Soltar al tocar suelo
-          }
-        }
-      });
     }
 
     function finishGame(winner) {
@@ -958,16 +978,8 @@
       ctx.fillStyle = '#090d16';
       ctx.fillRect(0, 0, 800, 450);
 
-      // Dibujar Plataformas
-      platforms.forEach(plat => {
-        ctx.fillStyle = '#101827';
-        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.strokeStyle = '#00f0ff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(plat.x, plat.y, plat.w, plat.h);
-      });
+      platforms.forEach(plat => plat.draw(ctx));
 
-      // Dibujar Ganchos / Lazos
       [p1, p2].forEach(p => {
         if (p.hook.active) {
           ctx.strokeStyle = p.color;
@@ -984,71 +996,8 @@
         }
       });
 
-      // Dibujar Stickmen
-      drawStickman(p1);
-      drawStickman(p2);
-    }
-
-    function drawStickman(p) {
-      ctx.save();
-      ctx.strokeStyle = p.color;
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur = 10;
-      ctx.lineWidth = 3;
-
-      // Dibujar Nombre sobre la cabeza
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 11px Orbitron';
-      ctx.textAlign = 'center';
-      ctx.fillText(p.name, p.x, p.y - 52);
-
-      // Estructura vertical exacta al ras de p.y
-      let legHeight = 16;
-      let torsoHeight = 22;
-      let headRadius = 8;
-
-      let hipY = p.y - legHeight;              // Cadera
-      let neckY = hipY - torsoHeight;          // Cuello
-      let headY = neckY - headRadius;          // Centro de cabeza
-
-      // 1. Cabeza
-      ctx.beginPath();
-      ctx.arc(p.x, headY, headRadius, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // 2. Torso
-      ctx.beginPath();
-      ctx.moveTo(p.x, neckY);
-      ctx.lineTo(p.x, hipY);
-      ctx.stroke();
-
-      // 3. Piernas (Apoyadas exactamente en p.y)
-      ctx.beginPath();
-      ctx.moveTo(p.x, hipY);
-      ctx.lineTo(p.x - 10, p.y);
-      ctx.moveTo(p.x, hipY);
-      ctx.lineTo(p.x + 10, p.y);
-      ctx.stroke();
-
-      // 4. Brazos
-      let shoulderY = neckY + 5;
-      ctx.beginPath();
-      ctx.moveTo(p.x, shoulderY);
-      let armX = p.x + p.facing * (p.attacking ? 22 : 12);
-      ctx.lineTo(armX, shoulderY + 4);
-      ctx.stroke();
-
-      // 5. Arma / Sable
-      if (p.attacking) {
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(armX, shoulderY + 4);
-        ctx.lineTo(armX + p.facing * 20, shoulderY - 8);
-        ctx.stroke();
-      }
-
-      ctx.restore();
+      p1.draw(ctx);
+      p2.draw(ctx);
     }
   </script>
 </body>
