@@ -1,29 +1,4 @@
-// ================================================================
-// STICKMAN SUPREME DUELIST - SERVIDOR PRINCIPAL
-// ================================================================
-// Este archivo cubre, en un solo lugar, todo lo pedido en la lista
-// de cotejo (adaptado de "biblioteca" al contexto del juego):
-//
-//   [10%] Se conecta correctamente a MySQL .......... ver archivo db.js (pool de conexion)
-//   [15%] CRUD (crear/modificar/eliminar armas) ...... seccion "CRUD DE ARMAS" mas abajo
-//   [5%]  Permite registrar usuarios .................. seccion "AUTENTICACION"
-//   [10%] Utiliza listas para almacenar datos ......... arrays: inventario, players, MAPS, WEAPON_KEYS
-//   [10%] Funcion recursiva ........................... calcularDanoTotalRecursivo (clase GestorArmeria)
-//   [5%]  Ciclos for y/o while ......................... asignarRol() usa while, el loop del juego usa for
-//   [5%]  Condicionales if / else ...................... en todo el archivo (JS no tiene "elif", se usa else if)
-//   [10%] Al menos dos clases con POO .................. clases Arma y GestorArmeria
-//   [5%]  Menu interactivo ............................. lo resuelve el cliente (index.html), este servidor
-//                                                          expone los datos que ese menu necesita (login,
-//                                                          puntajes, armas)
-//   [5%]  Proyecto documentado ......................... comentarios en cada seccion
-//   [5%]  Documenta los errores ........................ try/catch + console.error en cada endpoint y
-//                                                          manejador de errores global al final del archivo
-//
-// Nota de diseno: las estadisticas de combate (dano, alcance, velocidad de bala, etc.)
-// viven en el objeto WEAPONS de este archivo, NO en la base de datos. La tabla "armas"
-// de MySQL es el catalogo administrable (CRUD) que pide la lista de cotejo; mezclar ambas
-// cosas complicaria el codigo sin necesidad, asi que se mantienen separadas a proposito.
-// ================================================================
+
 
 require('dotenv').config();
 const express = require('express');
