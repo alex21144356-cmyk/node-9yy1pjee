@@ -1,6 +1,6 @@
 const mysql = require('mysql2/promise');
 
-// Conexion ligera a MySQL mediante variables de entorno
+// Pool de conexiones
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 3306,
@@ -8,14 +8,16 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'stickman',
   waitForConnections: true,
-  connectionLimit: 3, // Limite reducido para ahorrar RAM
+  connectionLimit: 3,
   queueLimit: 0,
 });
 
-// Inicializa el esquema con 4 tablas relacionales
+// Almacenamiento local de respaldo si la BD externa no esta configurada
+const usuariosMemoria = [];
+const ganadoresMemoria = [];
+
 async function initDB() {
   try {
-    // 1. Tabla de Usuarios
     await pool.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -24,83 +26,39 @@ async function initDB() {
         creado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-
-    // 2. Tabla de Catalogo de Armas
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS armas (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nombre VARCHAR(50) NOT NULL,
-        tipo VARCHAR(20) NOT NULL,
-        dano INT NOT NULL
-      )
-    `);
-
-    // 3. Tabla de Equipamiento (Relacion N:M)
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS equipamiento (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        usuario_id INT NOT NULL,
-        arma_id INT NOT NULL,
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-        FOREIGN KEY (arma_id) REFERENCES armas(id) ON DELETE CASCADE
-      )
-    `);
-
-    // 4. Tabla de Ganadores y Puntajes
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS ganadores (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nombre VARCHAR(30) NOT NULL,
-        puntuacion INT NOT NULL,
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    console.log('Base de datos cargada correctamente');
+    console.log('Base de datos MySQL conectada correctamente');
   } catch (err) {
-    console.error('Error al inicializar la base de datos:', err.message);
+    console.log('MySQL no disponible. Usando almacenamiento temporal en memoria.');
   }
 }
 
 async function crearUsuario(username, password) {
-  await pool.query('INSERT INTO usuarios (username, password) VALUES (?, ?)', [username, password]);
-}
-
-async function buscarUsuarioPorNombre(username) {
-  const [rows] = await pool.query('SELECT id, username, password FROM usuarios WHERE username = ? LIMIT 1', [username]);
-  return rows[0] || null;
-}
-
-async function crearArma(nombre, tipo, dano) {
-  const [res] = await pool.query('INSERT INTO armas (nombre, tipo, dano) VALUES (?, ?, ?)', [nombre, tipo, dano]);
-  return res.insertId;
-}
-
-async function obtenerArmas() {
-  const [rows] = await pool.query('SELECT * FROM armas');
-  return rows;
-}
-
-async function actualizarArma(id, nombre, tipo, dano) {
-  await pool.query('UPDATE armas SET nombre = ?, tipo = ?, dano = ? WHERE id = ?', [nombre, tipo, dano, id]);
-}
-
-async function eliminarArma(id) {
-  await pool.query('DELETE FROM armas WHERE id = ?', [id]);
-}
-
-async function guardarGanador(nombre, puntuacion) {
   try {
-    await pool.query('INSERT INTO ganadores (nombre, puntuacion) VALUES (?, ?)', [nombre, puntuacion]);
+    await pool.query('INSERT INTO usuarios (username, password) VALUES (?, ?)', [username, password]);
   } catch (err) {
-    console.error('Error al guardar puntaje:', err.message);
+    // Si falla MySQL, guarda en memoria
+    usuariosMemoria.push({ id: Date.now(), username, password });
   }
 }
 
+async function buscarUsuarioPorNombre(username) {
+  try {
+    const [rows] = await pool.query('SELECT id, username, password FROM usuarios WHERE username = ? LIMIT 1', [username]);
+    if (rows[0]) return rows[0];
+  } catch (err) {
+    // Buscar en respaldo
+  }
+  return usuariosMemoria.find(u => u.username === username) || null;
+}
+
 async function obtenerGanadores() {
-  const [rows] = await pool.query('SELECT nombre, puntuacion, fecha FROM ganadores ORDER BY puntuacion DESC LIMIT 20');
-  return rows;
+  try {
+    const [rows] = await pool.query('SELECT nombre, puntuacion, fecha FROM ganadores ORDER BY puntuacion DESC LIMIT 20');
+    if (rows.length) return rows;
+  } catch (err) {
+    // Devuelve lista en memoria
+  }
+  return ganadoresMemoria;
 }
 
 module.exports = {
@@ -108,10 +66,5 @@ module.exports = {
   initDB,
   crearUsuario,
   buscarUsuarioPorNombre,
-  crearArma,
-  obtenerArmas,
-  actualizarArma,
-  eliminarArma,
-  guardarGanador,
   obtenerGanadores
 };
