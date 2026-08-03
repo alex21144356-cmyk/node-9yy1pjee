@@ -1,6 +1,5 @@
 const mysql = require('mysql2/promise');
 
-// Conexion ligera a MySQL con limite reducido para no saturar memoria en Render
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 3306,
@@ -8,14 +7,12 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'stickman',
   waitForConnections: true,
-  connectionLimit: 3, // Reducido para ahorra recursos en Render
+  connectionLimit: 3,
   queueLimit: 0,
 });
 
-// Inicializacion del esquema de base de datos
 async function initDB() {
   try {
-    // Registro de Usuarios
     await pool.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -25,7 +22,6 @@ async function initDB() {
       )
     `);
 
-    // Registro de Armas (Equivalente a Libros en la lista)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS armas (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -35,7 +31,6 @@ async function initDB() {
       )
     `);
 
-    //  Registro de Equipamiento (Equivalente a Prestamos en la lista)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS equipamiento (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -47,7 +42,6 @@ async function initDB() {
       )
     `);
 
-    // Tabla para puntuaciones altas / Ganadores
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ganadores (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -63,7 +57,6 @@ async function initDB() {
   }
 }
 
-//  Permite registrar usuarios
 async function crearUsuario(username, passwordHash) {
   try {
     await pool.query('INSERT INTO usuarios (username, password_hash) VALUES (?, ?)', [username, passwordHash]);
@@ -83,7 +76,6 @@ async function buscarUsuarioPorNombre(username) {
   }
 }
 
-// CRUD de Armas (Registrar, Modificar, Eliminar)
 async function crearArma(nombre, tipo, dano) {
   try {
     const [res] = await pool.query('INSERT INTO armas (nombre, tipo, dano) VALUES (?, ?, ?)', [nombre, tipo, dano]);
@@ -122,7 +114,6 @@ async function eliminarArma(id) {
   }
 }
 
-//   registra equipamiento
 async function registrarEquipamiento(usuarioId, armaId) {
   try {
     await pool.query('INSERT INTO equipamiento (usuario_id, arma_id) VALUES (?, ?)', [usuarioId, armaId]);
@@ -132,7 +123,6 @@ async function registrarEquipamiento(usuarioId, armaId) {
   }
 }
 
-// Tabla de Puntajes
 async function guardarGanador(nombre, puntuacion) {
   try {
     await pool.query('INSERT INTO ganadores (nombre, puntuacion) VALUES (?, ?)', [nombre, puntuacion]);
