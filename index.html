@@ -511,7 +511,7 @@
     <div id="hud">
       <div class="player-stats">
         <div class="name-line" id="hud-p1-name" style="color:#00f0ff;">Jugador 1</div>
-        <div class="weapon-line" id="hud-p1-weapon">Sable Cyber</div>
+        <div class="weapon-line" id="hud-p1-weapon">Sable Cyber & Lazo</div>
         <div class="health-bar-container">
           <div id="hp-p1" class="health-bar"></div>
         </div>
@@ -519,7 +519,7 @@
       <div style="font-family:'Orbitron'; font-weight:900; color:#ff0055; font-size:22px; align-self:center;">VS</div>
       <div class="player-stats">
         <div class="name-line" id="hud-p2-name" style="color:#ff0055;">Jugador 2</div>
-        <div class="weapon-line" id="hud-p2-weapon">Blaster Láser</div>
+        <div class="weapon-line" id="hud-p2-weapon">Sable Cyber & Lazo</div>
         <div class="health-bar-container">
           <div id="hp-p2" class="health-bar"></div>
         </div>
@@ -539,7 +539,7 @@
       <canvas id="gameCanvas" width="800" height="450"></canvas>
     </div>
 
-    <div id="rol-tag">Controles P1: [A][D] Mover | [W] Saltar | [F] Atacar | [G] Disparar<br>Controles P2: [←][→] Mover | [↑] Saltar | [K] Atacar | [L] Disparar</div>
+    <div id="rol-tag">Controles P1: [A][D] Mover | [W] Saltar | [F] Atacar | [G] Lanzar Lazo<br>Controles P2: [←][→] Mover | [↑] Saltar | [K] Atacar | [L] Lanzar Lazo</div>
     <button id="btn-salir-juego" onclick="exitGame()">← Abandonar Combate</button>
   </div>
 
@@ -699,12 +699,12 @@
       { x: 310, y: 180, w: 180, h: 15 }
     ];
 
-    let p1, p2, bullets, gameActive;
+    let p1, p2, gameActive;
 
     function createStickman(x, color, name, isAI = false) {
       return {
         x: x,
-        y: 390, // Inicializado en el suelo base
+        y: 390,
         vx: 0,
         vy: 0,
         color: color,
@@ -714,9 +714,16 @@
         facing: x < 400 ? 1 : -1,
         attacking: false,
         attackCooldown: 0,
-        shootCooldown: 0,
         name: name,
-        isAI: isAI
+        isAI: isAI,
+        hook: {
+          active: false,
+          attached: false,
+          x: 0,
+          y: 0,
+          vx: 0,
+          vy: 0
+        }
       };
     }
 
@@ -733,7 +740,6 @@
 
       p1 = createStickman(180, '#00f0ff', p1Name);
       p2 = createStickman(620, '#ff0055', p2Name, mode === 'ai');
-      bullets = [];
 
       gameActive = true;
 
@@ -760,7 +766,11 @@
       else if (keys['KeyD']) { p1.vx = 4; p1.facing = 1; }
       else { p1.vx *= 0.8; }
 
-      if (keys['KeyW'] && p1.isGrounded) { p1.vy = -11; p1.isGrounded = false; }
+      if (keys['KeyW'] && p1.isGrounded) { 
+        p1.vy = -11; 
+        p1.isGrounded = false;
+        if(p1.hook.attached) releaseHook(p1);
+      }
 
       if (keys['KeyF'] && p1.attackCooldown <= 0) {
         p1.attacking = true;
@@ -768,9 +778,13 @@
         checkMeleeHit(p1, p2);
       }
 
-      if (keys['KeyG'] && p1.shootCooldown <= 0) {
-        bullets.push({ x: p1.x + p1.facing * 20, y: p1.y - 25, vx: p1.facing * 10, color: '#00f0ff', owner: p1 });
-        p1.shootCooldown = 25;
+      if (keys['KeyG']) {
+        if (!p1.hook.active) {
+          launchHook(p1);
+        } else {
+          releaseHook(p1);
+        }
+        keys['KeyG'] = false; // Evitar repetición automática
       }
 
       // --- CONTROLES P2 / IA ---
@@ -779,7 +793,11 @@
         else if (keys['ArrowRight']) { p2.vx = 4; p2.facing = 1; }
         else { p2.vx *= 0.8; }
 
-        if (keys['ArrowUp'] && p2.isGrounded) { p2.vy = -11; p2.isGrounded = false; }
+        if (keys['ArrowUp'] && p2.isGrounded) { 
+          p2.vy = -11; 
+          p2.isGrounded = false;
+          if(p2.hook.attached) releaseHook(p2);
+        }
 
         if (keys['KeyK'] && p2.attackCooldown <= 0) {
           p2.attacking = true;
@@ -787,11 +805,16 @@
           checkMeleeHit(p2, p1);
         }
 
-        if (keys['KeyL'] && p2.shootCooldown <= 0) {
-          bullets.push({ x: p2.x + p2.facing * 20, y: p2.y - 25, vx: p2.facing * 10, color: '#ff0055', owner: p2 });
-          p2.shootCooldown = 25;
+        if (keys['KeyL']) {
+          if (!p2.hook.active) {
+            launchHook(p2);
+          } else {
+            releaseHook(p2);
+          }
+          keys['KeyL'] = false;
         }
       } else {
+        // IA Lógica básica
         let dx = p1.x - p2.x;
         p2.facing = dx > 0 ? 1 : -1;
 
@@ -806,43 +829,23 @@
           }
         }
 
-        if (Math.abs(dx) < 250 && Math.random() < 0.03 && p2.shootCooldown <= 0) {
-          bullets.push({ x: p2.x + p2.facing * 20, y: p2.y - 25, vx: p2.facing * 10, color: '#ff0055', owner: p2 });
-          p2.shootCooldown = 35;
-        }
-
-        if (p1.y < p2.y - 20 && p2.isGrounded && Math.random() < 0.05) {
+        if (p1.y < p2.y - 30 && p2.isGrounded && Math.random() < 0.04) {
           p2.vy = -11;
           p2.isGrounded = false;
         }
       }
 
-      // Cooldowns
+      // Cooldowns de ataques
       [p1, p2].forEach(p => {
         if (p.attackCooldown > 0) p.attackCooldown--;
-        if (p.shootCooldown > 0) p.shootCooldown--;
         if (p.attackCooldown < 10) p.attacking = false;
       });
 
-      // Física
+      // Física y Ganchos
       applyPhysics(p1);
       applyPhysics(p2);
-
-      // Proyectiles
-      for (let i = bullets.length - 1; i >= 0; i--) {
-        let b = bullets[i];
-        b.x += b.vx;
-
-        let target = b.owner === p1 ? p2 : p1;
-        if (Math.abs(b.x - target.x) < 20 && Math.abs(b.y - (target.y - 20)) < 30) {
-          target.hp -= 12;
-          target.vx += b.vx * 0.3;
-          bullets.splice(i, 1);
-          continue;
-        }
-
-        if (b.x < 0 || b.x > 800) bullets.splice(i, 1);
-      }
+      updateHook(p1);
+      updateHook(p2);
 
       // Actualizar HUD
       document.getElementById('hp-p1').style.width = Math.max(0, p1.hp) + '%';
@@ -860,6 +863,53 @@
       gameLoopId = requestAnimationFrame(updateGame);
     }
 
+    function launchHook(p) {
+      p.hook.active = true;
+      p.hook.attached = false;
+      p.hook.x = p.x;
+      p.hook.y = p.y - 20;
+      let angle = p.facing === 1 ? -0.3 : Math.PI + 0.3;
+      p.hook.vx = Math.cos(angle) * 16;
+      p.hook.vy = Math.sin(angle) * 16;
+    }
+
+    function releaseHook(p) {
+      p.hook.active = false;
+      p.hook.attached = false;
+    }
+
+    function updateHook(p) {
+      if (!p.hook.active) return;
+
+      if (!p.hook.attached) {
+        p.hook.x += p.hook.vx;
+        p.hook.y += p.hook.vy;
+
+        // Comprobar colisión con plataformas
+        platforms.forEach(plat => {
+          if (p.hook.x >= plat.x && p.hook.x <= plat.x + plat.w &&
+              p.hook.y >= plat.y && p.hook.y <= plat.y + plat.h) {
+            p.hook.attached = true;
+            p.hook.vx = 0;
+            p.hook.vy = 0;
+          }
+        });
+
+        // Desactivar si sale de la pantalla
+        if (p.hook.x < 0 || p.hook.x > 800 || p.hook.y < 0 || p.hook.y > 450) {
+          releaseHook(p);
+        }
+      } else {
+        // Tracción hacia el punto enganchado (Lazo)
+        let dx = p.hook.x - p.x;
+        let dy = (p.hook.y - 15) - p.y;
+        p.vx += dx * 0.08;
+        p.vy += dy * 0.08;
+        p.vx *= 0.82;
+        p.vy *= 0.82;
+      }
+    }
+
     function checkMeleeHit(attacker, defender) {
       let reach = 40;
       let hit = (attacker.facing === 1 && defender.x > attacker.x && defender.x < attacker.x + reach) ||
@@ -869,11 +919,14 @@
         defender.hp -= 15;
         defender.vx = attacker.facing * 8;
         defender.vy = -4;
+        if(defender.hook.attached) releaseHook(defender);
       }
     }
 
     function applyPhysics(p) {
-      p.vy += 0.55; // Gravedad
+      if (!p.hook.attached) {
+        p.vy += 0.55; // Gravedad normal
+      }
       p.x += p.vx;
       p.y += p.vy;
 
@@ -882,13 +935,14 @@
 
       p.isGrounded = false;
 
-      // Colisión exacta con la parte superior de las plataformas
+      // Colisión precisa con plataformas (ajustada para cero flotación)
       platforms.forEach(plat => {
         if (p.x >= plat.x - 10 && p.x <= plat.x + plat.w + 10) {
-          if (p.y >= plat.y && p.y - p.vy <= plat.y + 12) {
-            p.y = plat.y; // Asigna la posición vertical EXACTAMENTE al borde de la base
+          if (p.y >= plat.y - 2 && p.y - p.vy <= plat.y + 12) {
+            p.y = plat.y; 
             p.vy = 0;
             p.isGrounded = true;
+            if (p.hook.attached) releaseHook(p); // Soltar al tocar suelo
           }
         }
       });
@@ -913,15 +967,21 @@
         ctx.strokeRect(plat.x, plat.y, plat.w, plat.h);
       });
 
-      // Dibujar Proyectiles
-      bullets.forEach(b => {
-        ctx.fillStyle = b.color;
-        ctx.shadowColor = b.color;
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+      // Dibujar Ganchos / Lazos
+      [p1, p2].forEach(p => {
+        if (p.hook.active) {
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y - 22);
+          ctx.lineTo(p.hook.x, p.hook.y);
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(p.hook.x, p.hook.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
       });
 
       // Dibujar Stickmen
@@ -942,7 +1002,7 @@
       ctx.textAlign = 'center';
       ctx.fillText(p.name, p.x, p.y - 52);
 
-      // Cálculo del cuerpo hacia arriba desde el suelo exacto (p.y)
+      // Estructura vertical exacta al ras de p.y
       let legHeight = 16;
       let torsoHeight = 22;
       let headRadius = 8;
@@ -962,7 +1022,7 @@
       ctx.lineTo(p.x, hipY);
       ctx.stroke();
 
-      // 3. Piernas (Directamente en p.y = suelo)
+      // 3. Piernas (Apoyadas exactamente en p.y)
       ctx.beginPath();
       ctx.moveTo(p.x, hipY);
       ctx.lineTo(p.x - 10, p.y);
