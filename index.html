@@ -8,7 +8,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background-color: #050508; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
 
-    /* CONTENEDOR DE LOGIN (Estilo idéntico a la captura 2) */
+    /* ESTILO PANTALLA INICIO (Igual a la imagen 2) */
     #auth-screen {
       position: relative;
       width: 420px;
@@ -37,24 +37,26 @@
 
     #error-msg { color: #ff4757; font-size: 12px; margin-top: 15px; display: none; }
 
-    /* DECORACIÓN MONITOS ABAJO */
-    .stickmen-decor { position: absolute; bottom: -45px; left: 0; width: 100%; display: flex; justify-content: center; gap: 30px; }
+    /* DECORACIÓN MONITOS EN PANTALLA INICIO */
+    .stickmen-decor { position: absolute; bottom: -45px; left: 0; width: 100%; display: flex; justify-content: center; gap: 40px; }
     .stickman-svg { width: 25px; height: 40px; }
 
-    /* ARENA DE JUEGO */
+    /* ESTILO JUEGO (Igual a la imagen 1) */
     #game-container { display: none; flex-direction: column; align-items: center; }
-    .scoreboard { display: flex; gap: 10px; background: #0a0f1a; border: 1px solid #1c2d42; padding: 10px; border-radius: 5px; margin-bottom: 10px; width: 800px; }
-    .p-card { flex: 1; background: #08101a; padding: 5px; border-radius: 3px; text-align: center; font-size: 12px; }
-    .p-card .hp-bar { height: 8px; background: #333; margin-top: 5px; border-radius: 4px; overflow: hidden; }
-    .p-card .hp-fill { height: 100%; width: 100%; background: #ff4757; transition: width 0.2s; }
+    .scoreboard { display: flex; gap: 10px; background: rgba(10, 15, 26, 0.8); border: 1px solid #17a2b8; padding: 10px; border-radius: 4px; margin-bottom: 10px; width: 800px; }
+    .p-card { flex: 1; background: #08101a; padding: 6px; border-radius: 3px; text-align: center; font-size: 12px; border: 1px solid #1c2d42; }
+    .p-card .hp-bar { height: 8px; background: #222; margin-top: 5px; border-radius: 2px; overflow: hidden; }
+    .p-card .hp-fill { height: 100%; width: 100%; background: #ff2a70; transition: width 0.15s; }
 
-    canvas { background: #111625; border: 1px solid #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
-    .controls-hint { margin-top: 10px; color: #ff4757; font-size: 12px; font-weight: bold; text-align: center; }
+    canvas { background: #0d131d; border: 1px solid #17a2b8; box-shadow: 0 0 15px rgba(23, 162, 184, 0.2); }
+    .map-title { color: #00f0ff; margin-bottom: 6px; font-weight: bold; font-size: 13px; letter-spacing: 1px; }
+    .controls-hint { margin-top: 12px; color: #ff2a70; font-size: 12px; font-weight: bold; text-align: center; letter-spacing: 0.5px; }
+    .btn-abandonar { margin-top: 8px; background: none; border: none; color: #8899a6; font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
   </style>
 </head>
 <body>
 
-  <!-- PANTALLA DE INICIO / AUTH -->
+  <!-- PANTALLA DE INICIO IDÉNTICA A LA IMAGEN 2 -->
   <div id="auth-screen">
     <h2>ACCESO ARENA</h2>
     <p class="sub">Ingresa tus datos para luchar</p>
@@ -74,12 +76,11 @@
         <input type="password" id="password" required>
       </div>
 
-      <button type="submit" class="btn-submit" id="btn-text">INICIAR SESIÓN →</button>
+      <button type="submit" class="btn-submit" id="btn-text">CREAR CUENTA →</button>
     </form>
 
     <div id="error-msg">Error de conexión con el servidor</div>
 
-    <!-- Stickmen decorativos abajo -->
     <div class="stickmen-decor">
       <svg class="stickman-svg" viewBox="0 0 50 100">
         <circle cx="25" cy="15" r="10" stroke="#ff0055" stroke-width="4" fill="none"/>
@@ -96,20 +97,21 @@
     </div>
   </div>
 
-  <!-- ARENA DE JUEGO EN VIVO -->
+  <!-- JUEGO IDÉNTICO A LA IMAGEN 1 -->
   <div id="game-container">
     <div class="scoreboard" id="scoreboard"></div>
-    <div style="color: #00f0ff; margin-bottom: 5px; font-weight: bold; font-size: 14px;" id="map-name">🗺️ MAPA: Arena Clásica</div>
+    <div class="map-title" id="map-name">🗺️ MAPA: Arena Clásica</div>
     <canvas id="canvas" width="800" height="450"></canvas>
-    <div class="controls-hint">CONTROLANDO JUGADOR - CONTROLES: WASD / FLECHAS (ARRIBA PARA SALTAR)</div>
+    <div class="controls-hint" id="controls-label">CONTROLANDO P1 - CONTROLES: WASD / FLECHAS + ESPACIO</div>
+    <button class="btn-abandonar" onclick="location.reload()">🚪 ABANDONAR ARENA</button>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    let mode = 'login';
-    let myId = null;
-    let keys = { left: false, right: false, up: false };
+    let mode = 'register';
+    let myRole = 1;
+    let keys = { left: false, right: false, up: false, attack: false };
 
     function setTab(m) {
       mode = m;
@@ -147,79 +149,172 @@
       }
     }
 
-    // CONTROLES DE TECLADO
     window.addEventListener('keydown', e => {
       if (['ArrowLeft', 'a', 'A'].includes(e.key)) keys.left = true;
       if (['ArrowRight', 'd', 'D'].includes(e.key)) keys.right = true;
-      if (['ArrowUp', 'w', 'W', ' '].includes(e.key)) keys.up = true;
+      if (['ArrowUp', 'w', 'W'].includes(e.key)) keys.up = true;
+      if (e.code === 'Space') keys.attack = true;
       socket.emit('input', keys);
     });
 
     window.addEventListener('keyup', e => {
       if (['ArrowLeft', 'a', 'A'].includes(e.key)) keys.left = false;
       if (['ArrowRight', 'd', 'D'].includes(e.key)) keys.right = false;
-      if (['ArrowUp', 'w', 'W', ' '].includes(e.key)) keys.up = false;
+      if (['ArrowUp', 'w', 'W'].includes(e.key)) keys.up = false;
+      if (e.code === 'Space') keys.attack = false;
       socket.emit('input', keys);
     });
 
-    socket.on('init', data => { myId = data.id; });
+    socket.on('init', data => {
+      myRole = data.role;
+      document.getElementById('controls-label').innerText = `CONTROLANDO P${myRole} - CONTROLES: WASD / FLECHAS + ESPACIO`;
+    });
 
-    // RENDERIZADO DEL CANVAS Y JUEGO
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+
+    // DIBUJAR ARMA SEGÚN TIPO EN MANOS DEL PERSONAJE
+    function renderizarArma(x, y, dir, arma) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(dir, 1);
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ffffff';
+      ctx.fillStyle = '#ffffff';
+
+      switch(arma) {
+        case 'Espada':
+          ctx.strokeStyle = '#e0e0e0';
+          ctx.beginPath();
+          ctx.moveTo(10, 0);
+          ctx.lineTo(30, -5); // Hoja brillante
+          ctx.stroke();
+          ctx.fillRect(8, -3, 3, 6); // Guardamanos
+          break;
+
+        case 'Fusil':
+          ctx.fillStyle = '#fbc02d';
+          ctx.fillRect(8, -3, 16, 5); // Cuerpo
+          ctx.fillRect(24, -2, 10, 2); // Cañón
+          ctx.fillRect(12, 2, 4, 6); // Cargador
+          break;
+
+        case 'Subfusil':
+          ctx.fillStyle = '#ff9800';
+          ctx.fillRect(8, -4, 12, 6); // Compacto
+          ctx.fillRect(20, -2, 6, 2); // Cañón
+          ctx.fillRect(14, 2, 3, 7); // Cargador largo
+          break;
+
+        case 'Escopeta':
+          ctx.fillStyle = '#e91e63';
+          ctx.fillRect(6, -2, 18, 5); // Cañón doble ancho
+          ctx.fillStyle = '#795548';
+          ctx.fillRect(0, 0, 8, 4); // Culata de madera
+          break;
+
+        case 'Francotirador':
+          ctx.fillStyle = '#00e5ff';
+          ctx.fillRect(6, -2, 14, 4); // Cuerpo
+          ctx.fillRect(20, -1, 16, 2); // Cañón muy largo
+          ctx.fillRect(12, -5, 6, 2); // Mira telescópica
+          break;
+
+        case 'Gancho':
+          ctx.fillStyle = '#00e676';
+          ctx.fillRect(8, -3, 10, 5);
+          ctx.beginPath();
+          ctx.arc(20, -1, 4, 0, Math.PI * 1.5); // Garfio del gancho
+          ctx.stroke();
+          break;
+      }
+      ctx.restore();
+    }
 
     socket.on('estadoJuego', estado => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       document.getElementById('map-name').innerText = `🗺️ MAPA: ${estado.mapa.nombre}`;
 
-      // 1. DIBUJAR PLATAFORMAS DEL MAPA
-      ctx.fillStyle = '#1c2d42';
+      // 1. DIBUJAR PLATAFORMAS
+      ctx.fillStyle = '#182232';
       estado.mapa.plataformas.forEach(plat => {
         ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.strokeStyle = '#00f0ff';
+        ctx.strokeStyle = '#17a2b8';
+        ctx.lineWidth = 1;
         ctx.strokeRect(plat.x, plat.y, plat.w, plat.h);
       });
 
-      // 2. DIBUJAR BOLITAS DE ARMAS SOLTADAS (CADA 5S)
+      // 2. DIBUJAR ARMAS EN EL SUELO (BOLITAS BRILLANTES CADA 5s)
       (estado.itemsArmas || []).forEach(item => {
         ctx.beginPath();
-        ctx.arc(item.x, item.y, 8, 0, Math.PI * 2);
+        ctx.arc(item.x, item.y, 9, 0, Math.PI * 2);
         ctx.fillStyle = item.color;
         ctx.shadowColor = item.color;
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 10;
         ctx.fill();
-        ctx.shadowBlur = 0; // Reset sombra
+        ctx.shadowBlur = 0;
 
-        // Nombre del arma encima de la bolita
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = '#ffffff';
         ctx.font = '10px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(item.arma, item.x, item.y - 12);
+        ctx.fillText(item.arma, item.x, item.y - 13);
       });
 
-      // 3. DIBUJAR JUGADORES Y SCOREBOARD
+      // 3. DIBUJAR PROYECTILES Y DISPAROS
+      (estado.proyectiles || []).forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.tipo === 'escopeta' ? 3 : 4, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      // 4. DIBUJAR EFECTOS DE CORTE (ESPADA)
+      (estado.efectosAtaque || []).forEach(ef => {
+        ctx.beginPath();
+        ctx.arc(ef.x, ef.y, 25, ef.facing === 1 ? -Math.PI / 3 : Math.PI * 0.7, ef.facing === 1 ? Math.PI / 3 : Math.PI * 1.3);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      });
+
+      // 5. SCOREBOARD SUPERIOR Y JUGADORES
       const scoreboard = document.getElementById('scoreboard');
       scoreboard.innerHTML = '';
 
+      // Crear slots para P1, P2, P3, P4
+      for (let r = 1; r <= 4; r++) {
+        const p = Object.values(estado.players).find(x => x.role === r);
+        const card = document.createElement('div');
+        card.className = 'p-card';
+
+        if (p) {
+          card.innerHTML = `
+            <div style="color: ${p.color}; font-weight: bold;">P${p.role}: ${p.score}</div>
+            <div class="hp-bar"><div class="hp-fill" style="width: ${p.health}%; background: ${p.color}"></div></div>
+            <div style="color: #8899a6; font-size: 10px; margin-top: 3px;">${p.arma}</div>
+          `;
+        } else {
+          card.innerHTML = `
+            <div style="color: #445566; font-weight: bold;">P${r}: -</div>
+            <div class="hp-bar"><div class="hp-fill" style="width: 0%;"></div></div>
+            <div style="color: #445566; font-size: 10px; margin-top: 3px;">Esperando...</div>
+          `;
+        }
+        scoreboard.appendChild(card);
+      }
+
+      // Dibujar los Monitos Stickmen
       Object.values(estado.players).forEach(p => {
         if (p.role > 4) return;
 
-        // Render Scoreboard Card
-        const card = document.createElement('div');
-        card.className = 'p-card';
-        card.innerHTML = `
-          <div style="color: ${p.color}; font-weight: bold;">${p.name} (P${p.role})</div>
-          <div style="color: #aaa; font-size: 10px;">Arma: ${p.arma}</div>
-          <div class="hp-bar"><div class="hp-fill" style="width: ${p.health}%; background: ${p.color}"></div></div>
-        `;
-        scoreboard.appendChild(card);
-
-        // Dibujar Muñeco Stickman
+        // Cabeza
         ctx.strokeStyle = p.color;
         ctx.lineWidth = 3;
-
-        // Cabeza
         ctx.beginPath();
         ctx.arc(p.x, p.y - 25, 8, 0, Math.PI * 2);
         ctx.stroke();
@@ -233,28 +328,23 @@
         // Piernas
         ctx.beginPath();
         ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x - 8, p.y + 15);
+        ctx.lineTo(p.x - 7, p.y + 15);
         ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x + 8, p.y + 15);
+        ctx.lineTo(p.x + 7, p.y + 15);
         ctx.stroke();
 
-        // Brazos y Arma Equipada
+        // Brazos
         ctx.beginPath();
         ctx.moveTo(p.x, p.y - 12);
-        ctx.lineTo(p.x + (p.facing * 12), p.y - 8);
+        ctx.lineTo(p.x + (p.facing * 10), p.y - 8);
         ctx.stroke();
 
-        // Visualización del Arma según tipo
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(p.x + (p.facing * 12), p.y - 8);
-        ctx.lineTo(p.x + (p.facing * 24), p.y - 8);
-        ctx.stroke();
+        // Dibujar Arma detallada
+        renderizarArma(p.x, p.y - 10, p.facing, p.arma);
 
-        // Nombre del jugador sobre la cabeza
-        ctx.fillStyle = '#fff';
-        ctx.font = '11px sans-serif';
+        // Nombre encima
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(p.name, p.x, p.y - 38);
       });
