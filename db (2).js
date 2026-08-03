@@ -1,6 +1,6 @@
 const mysql = require('mysql2/promise');
 
-// Conexion ligbera a MySQL mediante variables de entorno
+// Conexion ligera a MySQL mediante variables de entorno
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 3306,
@@ -8,14 +8,14 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'stickman',
   waitForConnections: true,
-  connectionLimit: 3, // Limite reducido para ahorrar memoria en Render
+  connectionLimit: 3, // Limite reducido para ahorrar RAM
   queueLimit: 0,
 });
 
-// Inicializa el esquema de la base de datos con diseno relacional
+// Inicializa el esquema con 4 tablas relacionales
 async function initDB() {
   try {
-    // 1. Tabla de Usuarios (Inicio de sesion / Crear cuenta)
+    // 1. Tabla de Usuarios
     await pool.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -25,7 +25,7 @@ async function initDB() {
       )
     `);
 
-    // 2. Tabla de Catalogo de Armas (Soporta el CRUD)
+    // 2. Tabla de Catalogo de Armas
     await pool.query(`
       CREATE TABLE IF NOT EXISTS armas (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -35,7 +35,7 @@ async function initDB() {
       )
     `);
 
-    // 3. Tabla de Equipamiento asignado por usuario (Relacion N:M)
+    // 3. Tabla de Equipamiento (Relacion N:M)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS equipamiento (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -47,7 +47,7 @@ async function initDB() {
       )
     `);
 
-    // 4. Tabla de Puntajes y Ganadores del Juego
+    // 4. Tabla de Ganadores y Puntajes
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ganadores (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -63,7 +63,6 @@ async function initDB() {
   }
 }
 
-// Operaciones para Usuarios
 async function crearUsuario(username, password) {
   await pool.query('INSERT INTO usuarios (username, password) VALUES (?, ?)', [username, password]);
 }
@@ -73,7 +72,6 @@ async function buscarUsuarioPorNombre(username) {
   return rows[0] || null;
 }
 
-// Operaciones CRUD para Catalogo de Armas
 async function crearArma(nombre, tipo, dano) {
   const [res] = await pool.query('INSERT INTO armas (nombre, tipo, dano) VALUES (?, ?, ?)', [nombre, tipo, dano]);
   return res.insertId;
@@ -92,12 +90,6 @@ async function eliminarArma(id) {
   await pool.query('DELETE FROM armas WHERE id = ?', [id]);
 }
 
-// Operaciones de Equipamiento
-async function registrarEquipamiento(usuarioId, armaId) {
-  await pool.query('INSERT INTO equipamiento (usuario_id, arma_id) VALUES (?, ?)', [usuarioId, armaId]);
-}
-
-// Operaciones para Puntajes de Juego
 async function guardarGanador(nombre, puntuacion) {
   try {
     await pool.query('INSERT INTO ganadores (nombre, puntuacion) VALUES (?, ?)', [nombre, puntuacion]);
@@ -120,7 +112,6 @@ module.exports = {
   obtenerArmas,
   actualizarArma,
   eliminarArma,
-  registrarEquipamiento,
   guardarGanador,
   obtenerGanadores
 };
