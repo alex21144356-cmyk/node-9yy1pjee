@@ -1,156 +1,88 @@
+const mysql = require('mysql2/promise');
 require('dotenv').config();
-const express = require('express');
-const {
+
+// Configuración del pool de conexiones
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'stickman_db',
+  port: process.env.DB_PORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+
+// Función para inicializar las tablas
+async function initDB() {
+  try {
+    const connection = await pool.getConnection();
+
+    // Tabla de usuarios
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS usuarios (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    `);
+
+    // Tabla de ganadores
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ganadores (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nombre VARCHAR(50) NOT NULL,
+        puntuacion INT DEFAULT 0,
+        fecha_victoria TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    `);
+
+    connection.release();
+    console.log('✅ Base de datos inicializada correctamente');
+  } catch (err) {
+    console.error('❌ No se pudo conectar a MySQL:', err.message);
+  }
+}
+
+// Funciones para consultas
+async function crearUsuario(username, passwordHash) {
+  const [result] = await pool.query(
+    'INSERT INTO usuarios (username, password_hash) VALUES (?, ?)',
+    [username, passwordHash]
+  );
+  return result;
+}
+
+async function buscarUsuarioPorNombre(username) {
+  const [rows] = await pool.query(
+    'SELECT * FROM usuarios WHERE username = ?',
+    [username]
+  );
+  return rows[0];
+}
+
+async function guardarGanador(nombre, puntuacion) {
+  const [result] = await pool.query(
+    'INSERT INTO ganadores (nombre, puntuacion) VALUES (?, ?)',
+    [nombre, puntuacion]
+  );
+  return result;
+}
+
+async function obtenerGanadores() {
+  const [rows] = await pool.query(
+    'SELECT nombre, puntuacion, fecha_victoria FROM ganadores ORDER BY puntuacion DESC LIMIT 10'
+  );
+  return rows;
+}
+
+// ÚNICA FORMA DE EXPORTAR AL FINAL DEL ARCHIVO (SIN LLAMAR A initDB() AQUÍ)
+module.exports = {
+  pool,
   initDB,
-  guardarGanador,
-  obtenerGanadores,
   crearUsuario,
   buscarUsuarioPorNombre,
-} = require('./db');
-
-const app = express();
-const http = require('http').createServer(app);
-
-const io = require('socket.io')(http, {
-  cors: { origin: '*' }
-});
-
-app.use(express.json());
-
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
-});
-
-// RUTAS API PARA LOGIN Y REGISTRO
-app.post('/api/register', async (req, res) => {
-  const { username, password } = req.body || {};
-  if (!username || !password) return res.status(400).json({ error: 'Faltan datos' });
-  try {
-    const existente = await buscarUsuarioPorNombre(username);
-    if (existente) return res.status(409).json({ error: 'El usuario ya existe' });
-    
-    // Guardamos el usuario (si no usas bcrypt aún, se guarda la contraseña directa)
-    await crearUsuario(username, password);
-    res.json({ username });
-  } catch (err) {
-    console.error("Error al registrar:", err);
-    res.status(500).json({ error: 'Error al registrar' });
-  }
-});
-
-app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body || {};
-  try {
-    const usuario = await buscarUsuarioPorNombre(username);
-    if (!usuario) return res.status(401).json({ error: 'Credenciales inválidas' });
-    
-    if (usuario.password_hash !== password) {
-      return res.status(401).json({ error: 'Credenciales inválidas' });
-    }
-    res.json({ username });
-  } catch (err) {
-    res.status(500).json({ error: 'Error en inicio de sesión' });
-  }
-});
-
-app.get('/api/ganadores', async (req, res) => {
-  try {
-    const ganadores = await obtenerGanadores();
-    res.json(ganadores);
-  } catch (err) {
-    res.status(500).json({ error: 'Error consultando ganadores' });
-  }
-});
-
-// LÓGICA DE JUGADORES Y ARENA
-let players = {};
-const MAX_PLAYERS = 4;
-
-const ROLE_CONFIG = {
-  1: { x: 150, y: 385, color: '#ff4757', facing: 1 },
-  2: { x: 300, y: 385, color: '#2ed573', facing: 1 },
-  3: { x: 500, y: 385, color: '#1e90ff', facing: -1 },
-  4: { x: 650, y: 385, color: '#9b59b6', facing: -1 },
+  guardarGanador,
+  obtenerGanadores,
 };
-
-io.on('connection', (socket) => {
-  let activePlayers = Object.values(players);
-  let role = null;
-
-  for (let r = 1; r <= MAX_PLAYERS; r++) {
-    let ocupado = activePlayers.some((p) => p.role === r);
-    if (!ocupado) { role = r; break; }
-  }
-
-  if (role === null) {
-    role = 99; // Espectador
-  }
-
-  const cfg = ROLE_CONFIG[role] || { x: -100, y: -100, color: '#00f0ff', facing: 1 };
-
-  players[socket.id] = {
-    id: socket.id,
-    role,
-    x: cfg.x,
-    y: cfg.y,
-    vx: 0,
-    vy: 0,
-    health: 100,
-    facing: cfg.facing,
-    color: cfg.color,
-    score: 0,
-    name: 'Jugador',
-    inputs: { left: false, right: false, up: false, attack: false }
-  };
-
-  socket.emit('init', { id: socket.id });
-
-  socket.on('input', (keys) => {
-    if (players[socket.id]) players[socket.id].inputs = keys;
-  });
-
-  socket.on('setName', (nombre) => {
-    if (players[socket.id] && typeof nombre === 'string') {
-      const limpio = nombre.trim().slice(0, 20);
-      if (limpio) players[socket.id].name = limpio;
-    }
-  });
-
-  socket.on('disconnect', () => {
-    delete players[socket.id];
-  });
-});
-
-// FÍSICAS (60 FPS)
-setInterval(() => {
-  for (let id in players) {
-    let p = players[id];
-    if (p.role > MAX_PLAYERS) continue;
-
-    if (p.inputs.left) { p.vx = -5; p.facing = -1; }
-    else if (p.inputs.right) { p.vx = 5; p.facing = 1; }
-    else { p.vx = 0; }
-
-    if (p.inputs.up && p.y >= 385) { p.vy = -12; }
-
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += 0.6;
-
-    if (p.y >= 385) { p.y = 385; p.vy = 0; }
-    if (p.x < 30) p.x = 30;
-    if (p.x > 770) p.x = 770;
-  }
-}, 1000 / 60);
-
-// TRANSMISIÓN A CLIENTES
-setInterval(() => {
-  io.emit('estadoJuego', { players, mapIndex: 0 });
-}, 50);
-
-initDB();
-
-const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
-  console.log(`Servidor activo en el puerto ${PORT}`);
-});
