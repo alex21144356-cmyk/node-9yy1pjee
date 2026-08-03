@@ -22,7 +22,7 @@
       overflow: hidden;
     }
 
-    /* ===================== CANVAS DE FONDO (LUCHA DEMO) ===================== */
+    /* ===================== CANVAS DE FONDO ===================== */
     #bg-canvas {
       position: fixed;
       top: 0;
@@ -549,7 +549,7 @@
        ========================================================================== */
     let currentUser = null;
     let authMode = 'login';
-    let currentGameMode = 'pvp'; // 'pvp' o 'ai'
+    let currentGameMode = 'pvp';
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -693,7 +693,7 @@
 
     // Plataformas del Mapa
     const platforms = [
-      { x: 0, y: 400, w: 800, h: 50 },
+      { x: 0, y: 390, w: 800, h: 60 },
       { x: 150, y: 280, w: 180, h: 15 },
       { x: 470, y: 280, w: 180, h: 15 },
       { x: 310, y: 180, w: 180, h: 15 }
@@ -704,11 +704,9 @@
     function createStickman(x, color, name, isAI = false) {
       return {
         x: x,
-        y: 300,
+        y: 390, // Inicializado en el suelo base
         vx: 0,
         vy: 0,
-        radius: 12,
-        height: 45,
         color: color,
         hp: 100,
         maxHp: 100,
@@ -739,7 +737,6 @@
 
       gameActive = true;
 
-      // Banner inicio
       const banner = document.getElementById('round-banner');
       banner.innerText = '¡FIGHT!';
       banner.classList.add('show');
@@ -758,7 +755,7 @@
     function updateGame() {
       if (!gameActive) return;
 
-      // --- MOVIMIENTO P1 ---
+      // --- CONTROLES P1 ---
       if (keys['KeyA']) { p1.vx = -4; p1.facing = -1; }
       else if (keys['KeyD']) { p1.vx = 4; p1.facing = 1; }
       else { p1.vx *= 0.8; }
@@ -772,11 +769,11 @@
       }
 
       if (keys['KeyG'] && p1.shootCooldown <= 0) {
-        bullets.push({ x: p1.x + p1.facing * 20, y: p1.y - 20, vx: p1.facing * 10, color: '#00f0ff', owner: p1 });
+        bullets.push({ x: p1.x + p1.facing * 20, y: p1.y - 25, vx: p1.facing * 10, color: '#00f0ff', owner: p1 });
         p1.shootCooldown = 25;
       }
 
-      // --- MOVIMIENTO P2 / IA ---
+      // --- CONTROLES P2 / IA ---
       if (!p2.isAI) {
         if (keys['ArrowLeft']) { p2.vx = -4; p2.facing = -1; }
         else if (keys['ArrowRight']) { p2.vx = 4; p2.facing = 1; }
@@ -791,11 +788,10 @@
         }
 
         if (keys['KeyL'] && p2.shootCooldown <= 0) {
-          bullets.push({ x: p2.x + p2.facing * 20, y: p2.y - 20, vx: p2.facing * 10, color: '#ff0055', owner: p2 });
+          bullets.push({ x: p2.x + p2.facing * 20, y: p2.y - 25, vx: p2.facing * 10, color: '#ff0055', owner: p2 });
           p2.shootCooldown = 25;
         }
       } else {
-        // Lógica Simple IA
         let dx = p1.x - p2.x;
         p2.facing = dx > 0 ? 1 : -1;
 
@@ -811,7 +807,7 @@
         }
 
         if (Math.abs(dx) < 250 && Math.random() < 0.03 && p2.shootCooldown <= 0) {
-          bullets.push({ x: p2.x + p2.facing * 20, y: p2.y - 20, vx: p2.facing * 10, color: '#ff0055', owner: p2 });
+          bullets.push({ x: p2.x + p2.facing * 20, y: p2.y - 25, vx: p2.facing * 10, color: '#ff0055', owner: p2 });
           p2.shootCooldown = 35;
         }
 
@@ -828,7 +824,7 @@
         if (p.attackCooldown < 10) p.attacking = false;
       });
 
-      // Física y Colisiones
+      // Física
       applyPhysics(p1);
       applyPhysics(p2);
 
@@ -852,7 +848,7 @@
       document.getElementById('hp-p1').style.width = Math.max(0, p1.hp) + '%';
       document.getElementById('hp-p2').style.width = Math.max(0, p2.hp) + '%';
 
-      // Verificar Fin de Juego
+      // Fin de Juego
       if (p1.hp <= 0 || p2.hp <= 0) {
         gameActive = false;
         let winner = p1.hp > 0 ? p1.name : p2.name;
@@ -860,9 +856,7 @@
         return;
       }
 
-      // Renderizar
       render();
-
       gameLoopId = requestAnimationFrame(updateGame);
     }
 
@@ -883,17 +877,16 @@
       p.x += p.vx;
       p.y += p.vy;
 
-      // Límites de pantalla
       if (p.x < 15) p.x = 15;
       if (p.x > 785) p.x = 785;
 
       p.isGrounded = false;
 
-      // Colisión Plataformas
+      // Colisión exacta con la parte superior de las plataformas
       platforms.forEach(plat => {
         if (p.x >= plat.x - 10 && p.x <= plat.x + plat.w + 10) {
-          if (p.y >= plat.y && p.y - p.vy <= plat.y) {
-            p.y = plat.y;
+          if (p.y >= plat.y && p.y - p.vy <= plat.y + 12) {
+            p.y = plat.y; // Asigna la posición vertical EXACTAMENTE al borde de la base
             p.vy = 0;
             p.isGrounded = true;
           }
@@ -908,11 +901,10 @@
     }
 
     function render() {
-      // Limpiar Canvas
       ctx.fillStyle = '#090d16';
       ctx.fillRect(0, 0, 800, 450);
 
-      // Dibujar Plataformas Cyber
+      // Dibujar Plataformas
       platforms.forEach(plat => {
         ctx.fillStyle = '#101827';
         ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
@@ -941,43 +933,58 @@
       ctx.save();
       ctx.strokeStyle = p.color;
       ctx.shadowColor = p.color;
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 10;
       ctx.lineWidth = 3;
 
-      let headY = p.y - 40;
+      // Dibujar Nombre sobre la cabeza
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px Orbitron';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.name, p.x, p.y - 52);
 
-      // Cabeza
+      // Cálculo del cuerpo hacia arriba desde el suelo exacto (p.y)
+      let legHeight = 16;
+      let torsoHeight = 22;
+      let headRadius = 8;
+
+      let hipY = p.y - legHeight;              // Cadera
+      let neckY = hipY - torsoHeight;          // Cuello
+      let headY = neckY - headRadius;          // Centro de cabeza
+
+      // 1. Cabeza
       ctx.beginPath();
-      ctx.arc(p.x, headY, 8, 0, Math.PI * 2);
+      ctx.arc(p.x, headY, headRadius, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Cuerpo
+      // 2. Torso
       ctx.beginPath();
-      ctx.moveTo(p.x, headY + 8);
-      ctx.lineTo(p.x, p.y - 15);
+      ctx.moveTo(p.x, neckY);
+      ctx.lineTo(p.x, hipY);
       ctx.stroke();
 
-      // Piernas
+      // 3. Piernas (Directamente en p.y = suelo)
       ctx.beginPath();
-      ctx.moveTo(p.x, p.y - 15);
+      ctx.moveTo(p.x, hipY);
       ctx.lineTo(p.x - 10, p.y);
-      ctx.moveTo(p.x, p.y - 15);
+      ctx.moveTo(p.x, hipY);
       ctx.lineTo(p.x + 10, p.y);
       ctx.stroke();
 
-      // Brazos / Espada Cyber
+      // 4. Brazos
+      let shoulderY = neckY + 5;
       ctx.beginPath();
-      ctx.moveTo(p.x, headY + 14);
-      let armX = p.x + p.facing * (p.attacking ? 25 : 12);
-      ctx.lineTo(armX, headY + 18);
+      ctx.moveTo(p.x, shoulderY);
+      let armX = p.x + p.facing * (p.attacking ? 22 : 12);
+      ctx.lineTo(armX, shoulderY + 4);
       ctx.stroke();
 
+      // 5. Arma / Sable
       if (p.attacking) {
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.moveTo(armX, headY + 18);
-        ctx.lineTo(armX + p.facing * 20, headY + 5);
+        ctx.moveTo(armX, shoulderY + 4);
+        ctx.lineTo(armX + p.facing * 20, shoulderY - 8);
         ctx.stroke();
       }
 
