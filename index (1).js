@@ -1,28 +1,32 @@
 require('dotenv').config();
 const express = require('express');
-const session = require('express-session');
-const bcrypt = require('bcryptjs');
+const http = require('http');
+const { Server } = require('socket.io');
 const {
   initDB,
-  guardarGanador,
-  obtenerGanadores,
   crearUsuario,
   buscarUsuarioPorNombre,
   crearArma,
   obtenerArmas,
   actualizarArma,
   eliminarArma,
-  registrarEquipamiento
+  registrarEquipamiento,
+  guardarGanador,
+  obtenerGanadores
 } = require('./db');
 
 const app = express();
-const http = require('http').createServer(app);
+const server = http.createServer(app);
+const io = new Server(server);
+
+app.use(express.json());
+app.use(express.static(__dirname));
 
 // ================================================================
-// IMPLEMENTACION DE POO (CLASES) Y FUNCION RECURSIVA
+// APLICACION DE POO Y FUNCION RECURSIVA (REQUERIDO)
 // ================================================================
 
-// Clase 1: Representa la entidad de un Arma
+// Clase 1: Objeto Arma
 class Arma {
   constructor(id, nombre, tipo, dano) {
     this.id = id;
@@ -32,20 +36,20 @@ class Arma {
   }
 }
 
-// Clase 2: Administra el inventario y catalogo
+// Clase 2: Gestor para administrar el inventario de la armeria
 class GestorArmeria {
   constructor() {
-    this.inventario = []; // Arreglo para almacenar objetos
+    this.inventario = [];
   }
 
-  cargarArmas(listaRaw) {
-    this.inventario = listaRaw.map(a => new Arma(a.id, a.nombre, a.tipo, a.dano));
+  cargarDatos(lista) {
+    this.inventario = lista.map(a => new Arma(a.id, a.nombre, a.tipo, a.dano));
   }
 
-  // FUNCIÓN RECURSIVA: Suma el daño total acumulado del inventario
+  // FUNCION RECURSIVA: Suma recursiva de dano acumulado
   calcularDanoTotalRecursivo(lista, index = 0) {
     if (index >= lista.length) {
-      return 0; // Caso base de la recursion
+      return 0; // Caso base
     }
     return lista[index].dano + this.calcularDanoTotalRecursivo(lista, index + 1); // Llamada recursiva
   }
@@ -53,53 +57,67 @@ class GestorArmeria {
 
 const armeriaManager = new GestorArmeria();
 
-// Middleware y servidor de archivos estáticos
-app.use(express.json());
-app.use(express.static(__dirname));
+// ================================================================
+// ENDPOINTS API / RUTAS
+// ================================================================
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'stickman_supreme_secreto',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 * 24 * 30 },
-  })
-);
-
+// Ruta principal
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-// ================================================================
-// ENDPOINTS API PARA EL CRUD DE ARMAS
-// ================================================================
+// Autenticacion: Crear Cuenta
+app.post('/api/register', async (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: 'Datos incompletos' });
 
-// Consultar lista de armas
-app.get('/api/armas', async (req, res) => {
   try {
-    const armasBD = await obtenerArmas();
-    armeriaManager.cargarArmas(armasBD);
-    const danoTotal = armeriaManager.calcularDanoTotalRecursivo(armeriaManager.inventario);
-    res.json({ danoTotalCatalogo: danoTotal, armas: armeriaManager.inventario });
+    const existe = await buscarUsuarioPorNombre(username);
+    if (existe) return res.status(409).json({ error: 'El usuario ya existe' });
+
+    await crearUsuario(username, password);
+    res.json({ username });
   } catch (err) {
-    res.status(500).json({ error: 'Error al consultar armas' });
+    res.status(500).json({ error: 'Error al registrar usuario' });
   }
 });
 
-// Crear nueva arma
+// Autenticacion: Inicio de Sesion
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body || {};
+  try {
+    const usuario = await buscarUsuarioPorNombre(username);
+    if (!usuario || usuario.password !== password) {
+      return res.status(401).json({ error: 'Usuario o contrasena incorrectos' });
+    }
+    res.json({ username: usuario.username });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al iniciar sesion' });
+  }
+});
+
+// CRUD de Armas (Consulta con POO y Recursividad)
+app.get('/api/armas', async (req, res) => {
+  try {
+    const armasBD = await obtenerArmas();
+    armeriaManager.cargarDatos(armasBD);
+    const danoTotal = armeriaManager.calcularDanoTotalRecursivo(armeriaManager.inventario);
+    res.json({ danoTotalCatalogo: danoTotal, armas: armeriaManager.inventario });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener armas' });
+  }
+});
+
 app.post('/api/armas', async (req, res) => {
   const { nombre, tipo, dano } = req.body || {};
-  if (!nombre || !tipo || !dano) return res.status(400).json({ error: 'Datos incompletos' });
-
   try {
     const id = await crearArma(nombre, tipo, dano);
     res.json({ id, nombre, tipo, dano });
   } catch (err) {
-    res.status(500).json({ error: 'Error al registrar arma' });
+    res.status(500).json({ error: 'Error al guardar arma' });
   }
 });
 
-// Modificar un arma
 app.put('/api/armas/:id', async (req, res) => {
   const { nombre, tipo, dano } = req.body || {};
   try {
@@ -110,7 +128,6 @@ app.put('/api/armas/:id', async (req, res) => {
   }
 });
 
-// Eliminar un arma
 app.delete('/api/armas/:id', async (req, res) => {
   try {
     await eliminarArma(req.params.id);
@@ -120,84 +137,80 @@ app.delete('/api/armas/:id', async (req, res) => {
   }
 });
 
-// Asignar equipamiento al usuario autenticado
-app.post('/api/equipamiento', async (req, res) => {
-  const { armaId } = req.body || {};
-  if (!req.session || !req.session.username) return res.status(401).json({ error: 'Sesion no iniciada' });
-
-  try {
-    const usuario = await buscarUsuarioPorNombre(req.session.username);
-    await registrarEquipamiento(usuario.id, armaId);
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Error al equipar arma' });
-  }
-});
-
-// ================================================================
-// ENDPOINTS DE AUTENTICACION
-// ================================================================
-
-function usuarioValido(username) {
-  return typeof username === 'string' && /^[a-zA-Z0-9_]{3,20}$/.test(username);
-}
-
-app.post('/api/register', async (req, res) => {
-  const { username, password } = req.body || {};
-  if (!usuarioValido(username) || !password || password.length < 4) {
-    return res.status(400).json({ error: 'Usuario o contrasena invalida' });
-  }
-  try {
-    const existente = await buscarUsuarioPorNombre(username);
-    if (existente) return res.status(409).json({ error: 'El usuario ya existe' });
-
-    const hash = await bcrypt.hash(password, 10);
-    await crearUsuario(username, hash);
-    req.session.username = username;
-    res.json({ username });
-  } catch (err) {
-    res.status(500).json({ error: 'Error interno de registro' });
-  }
-});
-
-app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body || {};
-  try {
-    const usuario = await buscarUsuarioPorNombre(username);
-    if (!usuario) return res.status(401).json({ error: 'Usuario no encontrado' });
-
-    const coincide = await bcrypt.compare(password, usuario.password_hash);
-    if (!coincide) return res.status(401).json({ error: 'Contrasena incorrecta' });
-
-    req.session.username = username;
-    res.json({ username });
-  } catch (err) {
-    res.status(500).json({ error: 'Error en inicio de sesion' });
-  }
-});
-
-app.post('/api/logout', (req, res) => {
-  req.session.destroy(() => res.json({ ok: true }));
-});
-
-app.get('/api/me', (req, res) => {
-  if (req.session && req.session.username) res.json({ username: req.session.username });
-  else res.status(401).json({ error: 'No autenticado' });
-});
-
+// Tabla de Puntajes (Salón de la Fama)
 app.get('/api/ganadores', async (req, res) => {
   try {
     const ganadores = await obtenerGanadores();
     res.json(ganadores);
   } catch (err) {
-    res.status(500).json({ error: 'Error al obtener ganadores' });
+    res.status(500).json({ error: 'Error al obtener puntajes' });
   }
 });
 
-// Inicializacion de la base de datos y arranque del servidor
-initDB();
+// ================================================================
+// LOGICA SOCKET.IO PARA MULTIJUGADOR EN TIEMPO REAL
+// ================================================================
+let estadoJuego = {
+  players: {},
+  bullets: {},
+  weaponPickups: {},
+  mapIndex: 0
+};
 
+io.on('connection', (socket) => {
+  console.log('Jugador conectado:', socket.id);
+
+  estadoJuego.players[socket.id] = {
+    id: socket.id,
+    name: 'Jugador',
+    x: 100 + Math.random() * 600,
+    y: 300,
+    vx: 0,
+    vy: 0,
+    health: 100,
+    score: 0,
+    facing: 'right',
+    weapon: 'espada',
+    isAlive: true,
+    role: Object.keys(estadoJuego.players).length + 1,
+    color: ['#ff0055', '#00f0ff', '#00ff66', '#ffcc00'][Math.floor(Math.random() * 4)]
+  };
+
+  socket.emit('init', { id: socket.id });
+
+  socket.on('setName', (nombre) => {
+    if (estadoJuego.players[socket.id]) {
+      estadoJuego.players[socket.id].name = nombre;
+    }
+  });
+
+  socket.on('input', (inputs) => {
+    const p = estadoJuego.players[socket.id];
+    if (p && p.isAlive) {
+      if (inputs.left) { p.x -= 5; p.facing = 'left'; }
+      if (inputs.right) { p.x += 5; p.facing = 'right'; }
+      if (inputs.up && p.y >= 390) { p.vy = -12; }
+    }
+  });
+
+  socket.on('disconnect', () => {
+    delete estadoJuego.players[socket.id];
+  });
+});
+
+// Bucle de actualizacion del juego ligero
+setInterval(() => {
+  Object.values(estadoJuego.players).forEach(p => {
+    p.y += p.vy;
+    if (p.y < 390) p.vy += 0.8;
+    else { p.y = 390; p.vy = 0; }
+  });
+  io.emit('estadoJuego', estadoJuego);
+}, 1000 / 30);
+
+// Arranque de la app
+initDB();
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
-  console.log(`Servidor escuchando en el puerto ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`Servidor activo en puerto ${PORT}`);
 });
