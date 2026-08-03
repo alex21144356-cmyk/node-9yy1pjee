@@ -1,6 +1,6 @@
 const mysql = require('mysql2/promise');
 
-// Configura la conexion a MySQL
+// Conexion ligera a MySQL con limite reducido para no saturar memoria en Render
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 3306,
@@ -8,24 +8,14 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'stickman',
   waitForConnections: true,
-  connectionLimit: 5,
+  connectionLimit: 3, // Reducido para ahorra recursos en Render
   queueLimit: 0,
 });
 
-// Inicializa las tablas necesarias en la base de datos
+// Inicializacion del esquema de base de datos
 async function initDB() {
   try {
-    // Tabla para ganadores del juego
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS ganadores (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nombre VARCHAR(30) NOT NULL,
-        puntuacion INT NOT NULL,
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Tabla de usuarios registrados
+    // Registro de Usuarios
     await pool.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -35,7 +25,7 @@ async function initDB() {
       )
     `);
 
-    // Tabla de catalogo de armas (Cumple CRUD)
+    // Registro de Armas (Equivalente a Libros en la lista)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS armas (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -45,60 +35,104 @@ async function initDB() {
       )
     `);
 
-    // Tabla de asignacion de equipamiento por usuario
+    //  Registro de Equipamiento (Equivalente a Prestamos en la lista)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS equipamiento (
         id INT AUTO_INCREMENT PRIMARY KEY,
         usuario_id INT NOT NULL,
         arma_id INT NOT NULL,
         fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
-        FOREIGN KEY (arma_id) REFERENCES armas(id)
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+        FOREIGN KEY (arma_id) REFERENCES armas(id) ON DELETE CASCADE
       )
     `);
 
-    console.log('✅ Base de datos inicializada correctamente.');
+    // Tabla para puntuaciones altas / Ganadores
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ganadores (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nombre VARCHAR(30) NOT NULL,
+        puntuacion INT NOT NULL,
+        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    console.log('Base de datos inicializada correctamente');
   } catch (err) {
-    console.error('❌ Error al inicializar MySQL:', err.message);
+    console.error('Error al inicializar MySQL:', err.message);
   }
 }
 
-// Registro de usuarios
+//  Permite registrar usuarios
 async function crearUsuario(username, passwordHash) {
-  await pool.query('INSERT INTO usuarios (username, password_hash) VALUES (?, ?)', [username, passwordHash]);
+  try {
+    await pool.query('INSERT INTO usuarios (username, password_hash) VALUES (?, ?)', [username, passwordHash]);
+  } catch (err) {
+    console.error('Error al crear usuario:', err.message);
+    throw err;
+  }
 }
 
-// Búsqueda de usuario por nombre
 async function buscarUsuarioPorNombre(username) {
-  const [rows] = await pool.query('SELECT id, username, password_hash FROM usuarios WHERE username = ? LIMIT 1', [username]);
-  return rows[0] || null;
+  try {
+    const [rows] = await pool.query('SELECT id, username, password_hash FROM usuarios WHERE username = ? LIMIT 1', [username]);
+    return rows[0] || null;
+  } catch (err) {
+    console.error('Error al buscar usuario:', err.message);
+    return null;
+  }
 }
 
-// Operaciones CRUD para Armas
+// CRUD de Armas (Registrar, Modificar, Eliminar)
 async function crearArma(nombre, tipo, dano) {
-  const [res] = await pool.query('INSERT INTO armas (nombre, tipo, dano) VALUES (?, ?, ?)', [nombre, tipo, dano]);
-  return res.insertId;
+  try {
+    const [res] = await pool.query('INSERT INTO armas (nombre, tipo, dano) VALUES (?, ?, ?)', [nombre, tipo, dano]);
+    return res.insertId;
+  } catch (err) {
+    console.error('Error al crear arma:', err.message);
+    throw err;
+  }
 }
 
 async function obtenerArmas() {
-  const [rows] = await pool.query('SELECT * FROM armas');
-  return rows;
+  try {
+    const [rows] = await pool.query('SELECT * FROM armas');
+    return rows;
+  } catch (err) {
+    console.error('Error al obtener armas:', err.message);
+    return [];
+  }
 }
 
 async function actualizarArma(id, nombre, tipo, dano) {
-  await pool.query('UPDATE armas SET nombre = ?, tipo = ?, dano = ? WHERE id = ?', [nombre, tipo, dano, id]);
+  try {
+    await pool.query('UPDATE armas SET nombre = ?, tipo = ?, dano = ? WHERE id = ?', [nombre, tipo, dano, id]);
+  } catch (err) {
+    console.error('Error al actualizar arma:', err.message);
+    throw err;
+  }
 }
 
 async function eliminarArma(id) {
-  await pool.query('DELETE FROM armas WHERE id = ?', [id]);
+  try {
+    await pool.query('DELETE FROM armas WHERE id = ?', [id]);
+  } catch (err) {
+    console.error('Error al eliminar arma:', err.message);
+    throw err;
+  }
 }
 
-// Registro de asignación de equipamiento
+//   registra equipamiento
 async function registrarEquipamiento(usuarioId, armaId) {
-  await pool.query('INSERT INTO equipamiento (usuario_id, arma_id) VALUES (?, ?)', [usuarioId, armaId]);
+  try {
+    await pool.query('INSERT INTO equipamiento (usuario_id, arma_id) VALUES (?, ?)', [usuarioId, armaId]);
+  } catch (err) {
+    console.error('Error al registrar equipamiento:', err.message);
+    throw err;
+  }
 }
 
-// Historial de puntuaciones
+// Tabla de Puntajes
 async function guardarGanador(nombre, puntuacion) {
   try {
     await pool.query('INSERT INTO ganadores (nombre, puntuacion) VALUES (?, ?)', [nombre, puntuacion]);
@@ -108,20 +142,25 @@ async function guardarGanador(nombre, puntuacion) {
 }
 
 async function obtenerGanadores() {
-  const [rows] = await pool.query('SELECT nombre, puntuacion, fecha FROM ganadores ORDER BY fecha DESC LIMIT 50');
-  return rows;
+  try {
+    const [rows] = await pool.query('SELECT nombre, puntuacion FROM ganadores ORDER BY puntuacion DESC LIMIT 10');
+    return rows;
+  } catch (err) {
+    console.error('Error al obtener ganadores:', err.message);
+    return [];
+  }
 }
 
 module.exports = {
   pool,
   initDB,
-  guardarGanador,
-  obtenerGanadores,
   crearUsuario,
   buscarUsuarioPorNombre,
   crearArma,
   obtenerArmas,
   actualizarArma,
   eliminarArma,
-  registrarEquipamiento
+  registrarEquipamiento,
+  guardarGanador,
+  obtenerGanadores
 };
