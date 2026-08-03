@@ -20,6 +20,18 @@
         overflow: hidden;
       }
 
+      /* ===================== CANVAS DE FONDO ===================== */
+      #bg-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      /* ===================== NAVEGACIÓN Y PANTALLAS ===================== */
       .screen {
         display: none;
         flex-direction: column;
@@ -28,9 +40,10 @@
         z-index: 10;
       }
       .screen.active {
-        display: flex !important;
+        display: flex;
       }
 
+      /* ===================== PANTALLA DE INICIO ===================== */
       #screen-landing {
         gap: 20px;
         text-align: center;
@@ -44,452 +57,898 @@
         letter-spacing: 4px;
         padding: 6px 20px;
         text-transform: uppercase;
+        clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+        box-shadow: 0 0 15px rgba(255, 0, 85, 0.6);
       }
 
       #landing-title {
-        font-size: 50px;
+        font-size: 62px;
         font-weight: 900;
+        line-height: 0.95;
+        letter-spacing: 3px;
         margin: 0;
         text-transform: uppercase;
+        text-shadow: 0 0 20px rgba(0, 240, 255, 0.5), 3px 3px 0px #ff0055;
+      }
+      #landing-title .neon-cyan { color: #00f0ff; }
+      #landing-title .neon-pink { color: #ff0055; }
+
+      #landing-subtitle {
+        font-size: 13px;
+        letter-spacing: 8px;
         color: #00f0ff;
-        text-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+        text-transform: uppercase;
+        text-shadow: 0 0 8px rgba(0, 240, 255, 0.7);
       }
 
       .arcade-btn {
         background: linear-gradient(135deg, #00f0ff 0%, #0077ff 100%);
         color: #000;
         font-weight: 900;
-        font-size: 18px;
-        letter-spacing: 3px;
-        padding: 15px 40px;
+        font-size: 20px;
+        letter-spacing: 4px;
+        padding: 18px 65px;
         border: none;
         cursor: pointer;
         text-transform: uppercase;
+        clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+        box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
+        transition: transform 0.15s ease, filter 0.15s ease;
+      }
+      .arcade-btn:hover {
+        transform: scale(1.05) translateY(-2px);
+        filter: brightness(1.2);
       }
 
+      /* ===================== TARJETAS CRISTAL (AUTH/MENÚ) ===================== */
       .glass-card {
-        width: 380px;
+        width: 420px;
         max-width: 90vw;
-        background: rgba(10, 14, 26, 0.9);
+        background: rgba(10, 14, 26, 0.75);
+        backdrop-filter: blur(12px);
         border: 2px solid rgba(0, 240, 255, 0.3);
-        padding: 30px;
+        border-radius: 4px;
+        padding: 35px 30px;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
         text-align: center;
       }
-
-      .tabs {
-        display: flex;
-        margin-bottom: 20px;
-        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+      .glass-card h2 {
+        color: #00f0ff;
+        letter-spacing: 4px;
+        font-size: 26px;
+        margin: 0 0 6px 0;
+        text-transform: uppercase;
+      }
+      .glass-card .card-sub {
+        color: #a0aec0;
+        font-size: 12px;
+        letter-spacing: 2px;
+        margin-bottom: 22px;
+        text-transform: uppercase;
       }
 
+      .tabs { display: flex; margin-bottom: 22px; border-bottom: 2px solid rgba(255, 255, 255, 0.1); }
       .tab-btn {
         flex: 1;
         background: none;
         border: none;
         color: #718096;
         font-weight: bold;
-        padding: 10px 0;
+        letter-spacing: 2px;
+        font-size: 13px;
+        padding: 12px 0;
         cursor: pointer;
         text-transform: uppercase;
+        border-bottom: 3px solid transparent;
       }
-
-      .tab-btn.active {
-        color: #ff0055;
-        border-bottom: 2px solid #ff0055;
-      }
+      .tab-btn.active { color: #ff0055; border-bottom-color: #ff0055; }
 
       .field-label {
         display: block;
         text-align: left;
         font-size: 11px;
+        letter-spacing: 2px;
         color: #00f0ff;
-        margin: 10px 0 5px 0;
+        text-transform: uppercase;
+        margin: 14px 0 6px 0;
       }
-
       .field-input {
         width: 100%;
-        font-size: 14px;
-        padding: 10px;
-        background: #05080f;
-        border: 1px solid #00f0ff;
+        font-size: 15px;
+        padding: 12px 14px;
+        border-radius: 2px;
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        background: rgba(5, 8, 15, 0.85);
         color: #fff;
       }
+      .field-input:focus { outline: none; border-color: #ff0055; }
 
       .auth-submit {
         width: 100%;
-        margin-top: 20px;
-        padding: 12px 0;
-        background: #ff0055;
-        color: #fff;
-        font-weight: bold;
+        margin-top: 24px;
+        font-size: 16px;
+        padding: 14px 0;
         border: none;
+        background: linear-gradient(90deg, #ff0055, #ff5500);
+        color: #fff;
+        font-weight: 900;
+        letter-spacing: 3px;
         cursor: pointer;
+        text-transform: uppercase;
       }
 
       .auth-error {
-        margin-top: 10px;
-        font-size: 12px;
+        margin-top: 14px;
+        font-size: 12.5px;
         color: #ff3366;
-        min-height: 15px;
+        min-height: 16px;
       }
 
-      .menu-btn {
-        width: 100%;
-        padding: 12px 0;
-        margin: 8px 0;
+      .link-btn {
+        margin-top: 18px;
+        background: none;
         border: none;
-        font-weight: bold;
+        color: #a0aec0;
+        font-size: 12px;
         cursor: pointer;
       }
 
-      .menu-btn.primary { background: #00f0ff; color: #000; }
-      .menu-btn.secondary { background: #1e293b; color: #fff; }
+      /* ===================== MENÚ PRINCIPAL ===================== */
+      #screen-menu { gap: 18px; text-align: center; }
+      .welcome-pill {
+        border: 1px solid rgba(0, 240, 255, 0.4);
+        background: rgba(0, 240, 255, 0.1);
+        color: #fff;
+        font-size: 14px;
+        padding: 8px 22px;
+        border-radius: 20px;
+        margin-bottom: 10px;
+      }
+      .welcome-pill b { color: #00f0ff; }
 
-      .score-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px;
-        border-bottom: 1px solid #334155;
+      .menu-btn {
+        width: 290px;
+        font-size: 16px;
+        font-weight: 900;
+        letter-spacing: 3px;
+        padding: 16px 0;
+        border: none;
+        cursor: pointer;
+        text-transform: uppercase;
+      }
+      .menu-btn.primary {
+        background: linear-gradient(90deg, #00f0ff, #0077ff);
+        color: #000;
+      }
+      .menu-btn.secondary {
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
       }
 
+      #menu-logout {
+        margin-top: 8px;
+        background: none;
+        border: none;
+        color: #e2e8f0;
+        font-size: 12px;
+        cursor: pointer;
+        text-transform: uppercase;
+      }
+
+      /* ===================== TABLA DE PUNTAJES ===================== */
+      #scores-list {
+        max-height: 320px;
+        overflow-y: auto;
+        text-align: left;
+        margin-top: 10px;
+      }
+      .score-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 14px;
+      }
+      .score-pos { width: 34px; color: #ff0055; font-weight: 900; }
+      .score-name { flex: 1; font-weight: bold; }
+      .score-pts { color: #00f0ff; font-weight: 900; }
+
+      /* ===================== PANTALLA DE JUEGO ===================== */
+      #screen-game { gap: 0; }
+      #hud {
+        display: flex;
+        justify-content: space-between;
+        width: 800px;
+        max-width: 96vw;
+        margin-bottom: 10px;
+        background: rgba(10, 14, 26, 0.85);
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        padding: 10px;
+        border-radius: 4px;
+        gap: 8px;
+      }
+      .player-stats { text-align: center; flex: 1; }
+      .player-stats .name-line {
+        font-weight: 900;
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .player-stats .weapon-line { font-size: 11px; color: #a0aec0; margin-top: 2px; }
+      .health-bar-container {
+        background: #1a202c;
+        height: 12px;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 5px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .health-bar { height: 100%; width: 100%; transition: width 0.1s ease; }
+      #map-name {
+        width: 800px;
+        max-width: 96vw;
+        text-align: center;
+        font-size: 13px;
+        color: #00f0ff;
+        margin-bottom: 8px;
+        letter-spacing: 2px;
+        font-weight: bold;
+      }
+      #canvas-wrap { position: relative; }
       canvas#gameCanvas {
         background: #0d111a;
+        border: 2px solid rgba(0, 240, 255, 0.4);
+        display: block;
+        max-width: 96vw;
+      }
+      #rol-tag {
+        margin-top: 10px;
+        font-weight: 900;
+        text-align: center;
+        font-size: 13px;
+      }
+      #btn-salir-juego {
+        margin-top: 10px;
+        background: none;
+        border: none;
+        color: #e2e8f0;
+        font-size: 12px;
+        cursor: pointer;
+        text-transform: uppercase;
+      }
+
+      #round-banner {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-12px);
+        background: rgba(10, 14, 26, 0.95);
         border: 2px solid #00f0ff;
-        box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+        padding: 12px 28px;
+        font-weight: 900;
+        font-size: 16px;
+        z-index: 15;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease, transform 0.25s ease;
+      }
+      #round-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+      #podium-overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(5, 8, 15, 0.92);
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 20;
+      }
+      #podium-title {
+        font-size: 32px;
+        font-weight: 900;
+        color: #00f0ff;
+        margin-bottom: 30px;
+      }
+      #podium-blocks { display: flex; align-items: flex-end; gap: 20px; }
+      .podium-block { display: flex; flex-direction: column; align-items: center; }
+      .podium-label { font-weight: 900; margin-bottom: 6px; font-size: 14px; }
+      .podium-score { font-size: 12px; color: #a0aec0; margin-bottom: 6px; }
+      .podium-pillar {
+        width: 85px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding-top: 8px;
+        font-weight: 900;
+        font-size: 24px;
+        color: rgba(0, 0, 0, 0.6);
       }
     </style>
   </head>
   <body>
+    <canvas id="bg-canvas"></canvas>
 
     <!-- LANDING -->
     <div id="screen-landing" class="screen active">
-      <div class="arcade-badge">⚡ Stickman Duel ⚡</div>
-      <h1 id="landing-title">ULTRA DUELS</h1>
-      <button id="btn-entrar-landing" class="arcade-btn">▶ ENTRAR ◀</button>
+      <div class="arcade-badge">⚡ 4 Players Arcade Battle ⚡</div>
+      <h1 id="landing-title">
+        <span class="neon-pink">ULTRE</span><br />
+        <span class="neon-cyan">DUELS</span><br />
+        Stickman
+      </h1>
+      <div id="landing-subtitle">Arena Edition</div>
+      <button id="btn-entrar-landing" class="arcade-btn">▶ Entrar ◀</button>
     </div>
 
-    <!-- AUTH -->
+    <!-- AUTH (LOGIN/REGISTRO) -->
     <div id="screen-auth" class="screen">
       <div class="glass-card">
-        <h2 style="color: #00f0ff; margin-top: 0;">ACCESO</h2>
+        <h2>Acceso Arena</h2>
+        <div class="card-sub">Ingresa credenciales para luchar</div>
+
         <div class="tabs">
           <button type="button" id="tab-login" class="tab-btn active">Login</button>
           <button type="button" id="tab-registro" class="tab-btn">Registro</button>
         </div>
 
         <form id="auth-form">
-          <label class="field-label">USUARIO</label>
-          <input id="auth-username" class="field-input" type="text" required />
+          <label class="field-label" for="auth-username">Usuario</label>
+          <input id="auth-username" class="field-input" type="text" maxlength="20" autocomplete="username" required />
 
-          <label class="field-label">CONTRASENA</label>
-          <input id="auth-password" class="field-input" type="password" required />
+          <label class="field-label" for="auth-password">Contraseña</label>
+          <input id="auth-password" class="field-input" type="password" maxlength="60" autocomplete="current-password" required />
 
-          <button type="submit" id="auth-submit" class="auth-submit">ENTRAR →</button>
+          <button type="submit" id="auth-submit" class="auth-submit">Entrar →</button>
           <div id="auth-error" class="auth-error"></div>
         </form>
 
-        <button id="btn-volver-auth" style="background:none; border:none; color:#aaa; margin-top:15px; cursor:pointer;">← Volver</button>
+        <button id="btn-volver-auth" class="link-btn">← Volver al inicio</button>
       </div>
     </div>
 
-    <!-- MENU -->
+    <!-- MENÚ PRINCIPAL -->
     <div id="screen-menu" class="screen">
-      <div class="glass-card">
-        <h2>MENU PRINCIPAL</h2>
-        <p>Usuario: <b id="menu-username" style="color: #00f0ff;">Jugador</b></p>
-        <button id="btn-jugar" class="menu-btn primary">⚔ PELEAR</button>
-        <button id="btn-puntajes" class="menu-btn secondary">🏆 PUNTAJES</button>
-        <button id="menu-logout" style="background:none; border:none; color:#ff0055; margin-top:10px; cursor:pointer;">Cerrar Sesion</button>
+      <div class="glass-card" style="width: 380px">
+        <h2>Menú Principal</h2>
+        <div class="welcome-pill">Peleador: <b id="menu-username">Jugador</b></div>
+        <div style="display: flex; flex-direction: column; gap: 14px; align-items: center; margin-top: 15px;">
+          <button id="btn-jugar" class="menu-btn primary">⚔ ENTRAMOS EN PELEA</button>
+          <button id="btn-puntajes" class="menu-btn secondary">🏆 VER PUNTAJES</button>
+        </div>
+        <button id="menu-logout">Cerrar Sesión</button>
       </div>
     </div>
 
     <!-- PUNTAJES -->
     <div id="screen-scores" class="screen">
       <div class="glass-card">
-        <h2>🏆 SALON DE LA FAMA</h2>
+        <h2>🏆 Salón de la Fama</h2>
+        <div class="card-sub">Mejores duelistas registrados</div>
         <div id="scores-list"></div>
-        <button id="btn-volver-scores" style="background:none; border:none; color:#aaa; margin-top:15px; cursor:pointer;">← Volver</button>
+        <button id="btn-volver-scores" class="link-btn">← Regresar al Menú</button>
       </div>
     </div>
 
-    <!-- JUEGO -->
+    <!-- PANTALLA DE JUEGO -->
     <div id="screen-game" class="screen">
-      <canvas id="gameCanvas" width="800" height="500"></canvas>
-      <button id="btn-salir-juego" style="background:none; border:none; color:#ff0055; margin-top:10px; cursor:pointer;">🚪 Abandonar</button>
+      <div id="hud">
+        <div class="player-stats">
+          <div id="p1-name" class="name-line" style="color: #ff4757">P1: <span id="p1-score">0</span></div>
+          <div class="health-bar-container"><div id="p1-bar" class="health-bar" style="background: #ff4757;"></div></div>
+          <div id="p1-weapon" class="weapon-line">Espada</div>
+        </div>
+        <div class="player-stats">
+          <div id="p2-name" class="name-line" style="color: #2ed573">P2: <span id="p2-score">0</span></div>
+          <div class="health-bar-container"><div id="p2-bar" class="health-bar" style="background: #2ed573;"></div></div>
+          <div id="p2-weapon" class="weapon-line">Espada</div>
+        </div>
+        <div class="player-stats">
+          <div id="p3-name" class="name-line" style="color: #1e90ff">P3: <span id="p3-score">0</span></div>
+          <div class="health-bar-container"><div id="p3-bar" class="health-bar" style="background: #1e90ff;"></div></div>
+          <div id="p3-weapon" class="weapon-line">Espada</div>
+        </div>
+        <div class="player-stats">
+          <div id="p4-name" class="name-line" style="color: #9b59b6">P4: <span id="p4-score">0</span></div>
+          <div class="health-bar-container"><div id="p4-bar" class="health-bar" style="background: #9b59b6;"></div></div>
+          <div id="p4-weapon" class="weapon-line">Espada</div>
+        </div>
+      </div>
+
+      <div id="map-name">Cargando mapa...</div>
+
+      <div id="canvas-wrap">
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        <div id="round-banner"></div>
+        <div id="podium-overlay">
+          <div id="podium-title">🏆 GANADOR DE LA ARENA 🏆</div>
+          <div id="podium-blocks"></div>
+        </div>
+      </div>
+
+      <div id="rol-tag">Identificando rol en la arena...</div>
+      <button id="btn-salir-juego">🚪 Abandonar Arena</button>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-      function cambiarPantalla(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        const objetivo = document.getElementById(id);
-        if (objetivo) objetivo.classList.add('active');
+      // ================================================================
+      //  1. IA DE FONDO (FONDO ANIMADO)
+      // ================================================================
+      const bgCanvas = document.getElementById('bg-canvas');
+      const bgCtx = bgCanvas.getContext('2d');
+
+      function resizeBgCanvas() {
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resizeBgCanvas);
+      resizeBgCanvas();
+
+      const demoFighters = [
+        { x: window.innerWidth * 0.25, y: 300, vx: 3, vy: 0, color: '#ff0055', facing: 1, weapon: 'espada', isAttacking: false, attackCooldown: 0 },
+        { x: window.innerWidth * 0.75, y: 300, vx: -3, vy: 0, color: '#00f0ff', facing: -1, weapon: 'pistola', isAttacking: false, attackCooldown: 0 }
+      ];
+
+      function updateDemoFighters() {
+        const floorY = bgCanvas.height - 70;
+        demoFighters.forEach((f, idx) => {
+          const other = demoFighters[idx === 0 ? 1 : 0];
+          const dist = other.x - f.x;
+          const absDist = Math.abs(dist);
+
+          f.x += f.vx;
+          f.y += f.vy;
+
+          if (f.y < floorY) {
+            f.vy += 0.6;
+          } else {
+            f.y = floorY;
+            f.vy = 0;
+            if (absDist < 180 && Math.random() < 0.04) f.vy = -12 - Math.random() * 4;
+          }
+
+          if (absDist > 60) {
+            f.vx = dist > 0 ? 3.5 : -3.5;
+            f.facing = dist > 0 ? 1 : -1;
+          }
+        });
+      }
+
+      function drawDemoStickman(f) {
+        bgCtx.save();
+        bgCtx.strokeStyle = f.color;
+        bgCtx.fillStyle = f.color;
+        bgCtx.lineWidth = 4;
+
+        bgCtx.beginPath();
+        bgCtx.arc(f.x, f.y - 30, 14, 0, Math.PI * 2);
+        bgCtx.fill();
+
+        bgCtx.beginPath();
+        bgCtx.moveTo(f.x, f.y - 16);
+        bgCtx.lineTo(f.x, f.y + 20);
+        bgCtx.stroke();
+
+        bgCtx.beginPath();
+        bgCtx.moveTo(f.x, f.y + 20);
+        bgCtx.lineTo(f.x - 12, f.y + 45);
+        bgCtx.moveTo(f.x, f.y + 20);
+        bgCtx.lineTo(f.x + 12, f.y + 45);
+        bgCtx.stroke();
+
+        bgCtx.restore();
+      }
+
+      function loopBgDemo() {
+        bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+        updateDemoFighters();
+        demoFighters.forEach(drawDemoStickman);
+        requestAnimationFrame(loopBgDemo);
+      }
+      loopBgDemo();
+
+      // ================================================================
+      //  2. NAVEGACIÓN Y AUTENTICACIÓN
+      // ================================================================
+      const SCREENS = ['screen-landing', 'screen-auth', 'screen-menu', 'screen-scores', 'screen-game'];
+      function mostrarSolo(id) {
+        SCREENS.forEach((s) => {
+          document.getElementById(s).classList.toggle('active', s === id);
+        });
       }
 
       let usuarioActual = null;
+
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.innerText = str;
+        return div.innerHTML;
+      }
+
+      fetch('/api/me')
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((data) => {
+          usuarioActual = data.username;
+          mostrarMenu();
+        })
+        .catch(() => mostrarSolo('screen-landing'));
+
+      function mostrarMenu() {
+        document.getElementById('menu-username').innerText = usuarioActual;
+        mostrarSolo('screen-menu');
+      }
+
+      document.getElementById('btn-entrar-landing').addEventListener('click', () => mostrarSolo('screen-auth'));
+
       let modoAuth = 'login';
-
-      document.getElementById('btn-entrar-landing').onclick = function() {
-        cambiarPantalla('screen-auth');
-      };
-
       const tabLogin = document.getElementById('tab-login');
       const tabRegistro = document.getElementById('tab-registro');
-      const authSubmit = document.getElementById('auth-submit');
-      const authError = document.getElementById('auth-error');
+      const authSubmitBtn = document.getElementById('auth-submit');
+      const authErrorEl = document.getElementById('auth-error');
 
-      tabLogin.onclick = function() {
-        modoAuth = 'login';
-        tabLogin.classList.add('active');
-        tabRegistro.classList.remove('active');
-        authSubmit.innerText = 'ENTRAR →';
-        authError.innerText = '';
-      };
+      function actualizarTabsAuth() {
+        tabLogin.classList.toggle('active', modoAuth === 'login');
+        tabRegistro.classList.toggle('active', modoAuth === 'registro');
+        authSubmitBtn.innerText = modoAuth === 'login' ? 'Entrar →' : 'Crear cuenta →';
+        authErrorEl.innerText = '';
+      }
+      tabLogin.addEventListener('click', () => { modoAuth = 'login'; actualizarTabsAuth(); });
+      tabRegistro.addEventListener('click', () => { modoAuth = 'registro'; actualizarTabsAuth(); });
 
-      tabRegistro.onclick = function() {
-        modoAuth = 'registro';
-        tabRegistro.classList.add('active');
-        tabLogin.classList.remove('active');
-        authSubmit.innerText = 'CREAR CUENTA →';
-        authError.innerText = '';
-      };
-
-      document.getElementById('btn-volver-auth').onclick = function() {
-        cambiarPantalla('screen-landing');
-      };
-
-      document.getElementById('auth-form').onsubmit = async function(e) {
+      document.getElementById('auth-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const username = document.getElementById('auth-username').value.trim();
-        const password = document.getElementById('auth-password').value.trim();
+        const password = document.getElementById('auth-password').value;
+        authErrorEl.innerText = '';
 
-        if (!username || !password) {
-          authError.innerText = 'Escribe usuario y contrasena';
-          return;
-        }
-
-        authError.innerText = 'Conectando...';
         const endpoint = modoAuth === 'login' ? '/api/login' : '/api/register';
-
         try {
           const res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password }),
           });
           const data = await res.json();
-
           if (!res.ok) {
-            authError.innerText = data.error || 'Fallo de acceso';
+            authErrorEl.innerText = data.error || 'Error de autenticación';
             return;
           }
-
           usuarioActual = data.username;
-          document.getElementById('menu-username').innerText = usuarioActual;
           document.getElementById('auth-password').value = '';
-          authError.innerText = '';
-          cambiarPantalla('screen-menu');
+          mostrarMenu();
         } catch (err) {
-          authError.innerText = 'Error de respuesta del servidor';
+          authErrorEl.innerText = 'Error de conexión';
         }
-      };
+      });
 
-      document.getElementById('btn-jugar').onclick = function() {
-        cambiarPantalla('screen-game');
-        iniciarSocket();
-      };
+      document.getElementById('btn-volver-auth').addEventListener('click', () => mostrarSolo('screen-landing'));
 
-      document.getElementById('btn-puntajes').onclick = async function() {
+      document.getElementById('btn-jugar').addEventListener('click', () => {
+        mostrarSolo('screen-game');
+        iniciarJuego();
+      });
+
+      document.getElementById('btn-puntajes').addEventListener('click', async () => {
         const lista = document.getElementById('scores-list');
-        lista.innerHTML = 'Cargando...';
-        cambiarPantalla('screen-scores');
-
+        lista.innerHTML = '<div style="color:#a0aec0; padding:20px; text-align:center;">Cargando...</div>';
+        mostrarSolo('screen-scores');
         try {
           const res = await fetch('/api/ganadores');
           const datos = await res.json();
           if (!datos.length) {
-            lista.innerHTML = 'Sin puntajes registrados';
+            lista.innerHTML = '<div style="color:#a0aec0; padding:20px; text-align:center;">Sin registro de ganadores</div>';
             return;
           }
-          lista.innerHTML = datos.map((g, i) => `
-            <div class="score-row">
-              <span>#${i + 1} ${g.nombre}</span>
-              <span style="color:#00f0ff;">${g.puntuacion} pts</span>
-            </div>
-          `).join('');
+          lista.innerHTML = datos
+            .map(
+              (g, i) =>
+                '<div class="score-row">' +
+                '<span class="score-pos">#' + (i + 1) + '</span>' +
+                '<span class="score-name">' + escapeHtml(g.nombre) + '</span>' +
+                '<span class="score-pts">' + g.puntuacion + ' pts</span>' +
+                '</div>'
+            )
+            .join('');
         } catch (err) {
-          lista.innerHTML = 'Error al consultar tabla';
+          lista.innerHTML = '<div style="color:#ff0055; padding:20px; text-align:center;">Error al cargar datos</div>';
         }
-      };
+      });
 
-      document.getElementById('btn-volver-scores').onclick = function() {
-        cambiarPantalla('screen-menu');
-      };
+      document.getElementById('btn-volver-scores').addEventListener('click', () => mostrarSolo('screen-menu'));
 
-      document.getElementById('menu-logout').onclick = function() {
+      document.getElementById('menu-logout').addEventListener('click', async () => {
+        try { await fetch('/api/logout', { method: 'POST' }); } catch (err) {}
         usuarioActual = null;
-        if (socket) socket.disconnect();
-        cambiarPantalla('screen-landing');
-      };
+        if (socket) { socket.disconnect(); socket = null; }
+        mostrarSolo('screen-landing');
+      });
 
-      document.getElementById('btn-salir-juego').onclick = function() {
-        if (socket) socket.disconnect();
-        cambiarPantalla('screen-menu');
-      };
+      document.getElementById('btn-salir-juego').addEventListener('click', () => {
+        if (socket) { socket.disconnect(); socket = null; }
+        mostrarSolo('screen-menu');
+      });
 
-      // RENDERIZADO DEL JUEGO
+      // ================================================================
+      //  3. JUEGO EN MULTIJUGADOR CON SOCKET.IO
+      // ================================================================
       let socket = null;
       const canvas = document.getElementById('gameCanvas');
       const ctx = canvas.getContext('2d');
-      let animTick = 0;
+      const FLOOR_Y = 400;
+      const CANVAS_WIDTH = 800;
+      const CANVAS_HEIGHT = 500;
 
-      function dibujarStickman(x, y, color, nombre, movimiento) {
-        ctx.save();
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = color || '#00f0ff';
-        ctx.fillStyle = color || '#00f0ff';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = color || '#00f0ff';
+      let miId = null;
+      let jugadores = {};
+      let weaponPickups = {};
+      let bullets = {};
+      let mapIndex = 0;
 
-        // Cabeza
-        ctx.beginPath();
-        ctx.arc(x, y - 45, 12, 0, Math.PI * 2);
-        ctx.stroke();
+      const keys = { left: false, right: false, up: false, attack: false };
 
-        // Ojos
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(x + 3, y - 47, 2, 0, Math.PI * 2);
-        ctx.fill();
+      const MAPS = [
+        { name: 'Arena Clásica', bg: '#0d111a', floorColor: '#1e293b', floorSegments: [[0, 800]], platforms: [] },
+        { name: 'Templo de Piedra', bg: '#1c1917', floorColor: '#44403c', floorSegments: [[0, 800]], platforms: [{ x: 140, y: 300, width: 150, height: 16 }, { x: 510, y: 300, width: 150, height: 16 }] },
+        { name: 'Plataformas Flotantes', bg: '#0f172a', floorColor: '#334155', floorSegments: [[0, 800]], platforms: [{ x: 70, y: 320, width: 120, height: 16 }, { x: 340, y: 250, width: 120, height: 16 }, { x: 610, y: 320, width: 120, height: 16 }] },
+        { name: 'Volcán', bg: '#270f0f', floorColor: '#991b1b', floorSegments: [[0, 800]], platforms: [{ x: 250, y: 310, width: 300, height: 16 }] }
+      ];
 
-        // Torso
-        ctx.beginPath();
-        ctx.moveTo(x, y - 33);
-        ctx.lineTo(x, y - 10);
-        ctx.stroke();
+      const WEAPON_VISUALS = {
+        espada: { name: 'Espada', color: '#d7dde3', accent: '#00f0ff' },
+        espada_larga: { name: 'Espadón', color: '#eef2f5', accent: '#ff0055' },
+        pistola: { name: 'Pistola', color: '#4a4a4a', accent: '#ffcc00' },
+        fusil_asalto: { name: 'Fusil Asalto', color: '#3f4a3f', accent: '#00ff66' },
+        escopeta: { name: 'Escopeta', color: '#5b4130', accent: '#ffaa00' },
+        francotirador: { name: 'Rifle Snip', color: '#2c3e50', accent: '#ff0055' },
+        gancho: { name: 'Gancho', color: '#8a8a8a', accent: '#00f0ff' },
+      };
 
-        const swing = movimiento ? Math.sin(animTick * 0.3) * 12 : 0;
+      const PICKUP_LETTER = { espada: 'E', espada_larga: 'S', pistola: 'P', fusil_asalto: 'F', escopeta: 'X', francotirador: 'R', gancho: 'G' };
 
-        // Brazos
-        ctx.beginPath();
-        ctx.moveTo(x, y - 28);
-        ctx.lineTo(x - 12 + swing, y - 15);
-        ctx.moveTo(x, y - 28);
-        ctx.lineTo(x + 12 - swing, y - 15);
-        ctx.stroke();
+      window.addEventListener('keydown', (e) => {
+        if (!socket) return;
+        let changed = false;
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { keys.left = true; changed = true; }
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { keys.right = true; changed = true; }
+        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { keys.up = true; changed = true; }
+        if (e.key === ' ' || e.key === 'e' || e.key === 'E') { keys.attack = true; changed = true; }
+        if (changed) socket.emit('input', keys);
+      });
 
-        // Piernas
-        ctx.beginPath();
-        ctx.moveTo(x, y - 10);
-        ctx.lineTo(x - 10 - swing, y);
-        ctx.moveTo(x, y - 10);
-        ctx.lineTo(x + 10 + swing, y);
-        ctx.stroke();
+      window.addEventListener('keyup', (e) => {
+        if (!socket) return;
+        let changed = false;
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { keys.left = false; changed = true; }
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { keys.right = false; changed = true; }
+        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { keys.up = false; changed = true; }
+        if (e.key === ' ' || e.key === 'e' || e.key === 'E') { keys.attack = false; changed = true; }
+        if (changed) socket.emit('input', keys);
+      });
 
-        // Etiqueta Nombre
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(x - 40, y - 72, 80, 18);
-        ctx.strokeStyle = color || '#00f0ff';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x - 40, y - 72, 80, 18);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(nombre, x, y - 59);
-
-        ctx.restore();
-      }
-
-      function dibujarEscenario() {
-        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        grad.addColorStop(0, '#050714');
-        grad.addColorStop(1, '#0f172a');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Cuadricula Cyberpunk
-        ctx.strokeStyle = 'rgba(0, 240, 255, 0.05)';
-        ctx.lineWidth = 1;
-        for (let x = 0; x < canvas.width; x += 40) {
-          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-        }
-        for (let y = 0; y < canvas.height; y += 40) {
-          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-        }
-
-        // Suelo Principal
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(0, 390, canvas.width, 110);
-
-        ctx.strokeStyle = '#00f0ff';
-        ctx.lineWidth = 3;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#00f0ff';
-        ctx.beginPath();
-        ctx.moveTo(0, 390);
-        ctx.lineTo(canvas.width, 390);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        // Plataforma Izquierda
-        ctx.fillStyle = '#0f172a';
-        ctx.strokeStyle = '#ff0055';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#ff0055';
-        ctx.fillRect(100, 260, 180, 15);
-        ctx.strokeRect(100, 260, 180, 15);
-
-        // Plataforma Derecha
-        ctx.fillRect(520, 260, 180, 15);
-        ctx.strokeRect(520, 260, 180, 15);
-
-        // Plataforma Central
-        ctx.strokeStyle = '#00ff66';
-        ctx.shadowColor = '#00ff66';
-        ctx.fillRect(320, 170, 160, 15);
-        ctx.strokeRect(320, 170, 160, 15);
-        ctx.shadowBlur = 0;
-      }
-
-      const teclas = { left: false, right: false, up: false };
-
-      function iniciarSocket() {
-        if (socket) socket.disconnect();
+      function iniciarJuego() {
+        if (socket) return;
         socket = io();
 
-        socket.on('init', () => {
+        socket.on('init', (data) => {
+          miId = data.id;
           socket.emit('setName', usuarioActual || 'Jugador');
         });
 
         socket.on('estadoJuego', (estado) => {
-          animTick++;
-          dibujarEscenario();
+          jugadores = estado.players;
+          weaponPickups = estado.weaponPickups;
+          bullets = estado.bullets || {};
+          mapIndex = estado.mapIndex;
 
-          if (estado.players) {
-            Object.values(estado.players).forEach(p => {
-              const estaMoviendose = !p.enSuelo || teclas.left || teclas.right;
-              dibujarStickman(p.x, p.y, p.color, p.name, estaMoviendose);
-            });
+          document.getElementById('map-name').innerText = '🗺️ MAPA: ' + (MAPS[mapIndex] ? MAPS[mapIndex].name : '');
+
+          for (let role = 1; role <= 4; role++) {
+            let p = Object.values(jugadores).find((j) => j.role === role);
+            let bar = document.getElementById('p' + role + '-bar');
+            let score = document.getElementById('p' + role + '-score');
+            let weaponLabel = document.getElementById('p' + role + '-weapon');
+            if (p) {
+              bar.style.width = Math.max(p.health, 0) + '%';
+              score.innerText = p.score;
+              const wv = WEAPON_VISUALS[p.weapon] || WEAPON_VISUALS.espada;
+              weaponLabel.innerText = wv.name;
+            } else {
+              bar.style.width = '0%';
+              weaponLabel.innerText = '';
+            }
+          }
+
+          const miUsuario = jugadores[miId];
+          const rolTag = document.getElementById('rol-tag');
+          if (miUsuario) {
+            if (miUsuario.role >= 1 && miUsuario.role <= 4) {
+              rolTag.innerText = 'CONTROLANDO P' + miUsuario.role + ' - CONTROLES: WASD / FLECHAS + ESPACIO';
+              rolTag.style.color = miUsuario.color;
+            } else {
+              rolTag.innerText = 'SALA LLENA — MODO ESPECTADOR';
+              rolTag.style.color = '#ffcc00';
+            }
           }
         });
 
-        window.onkeydown = function(e) {
-          if (!socket) return;
-          if (['ArrowLeft', 'a', 'A'].includes(e.key)) teclas.left = true;
-          if (['ArrowRight', 'd', 'D'].includes(e.key)) teclas.right = true;
-          if (['ArrowUp', 'w', 'W'].includes(e.key)) teclas.up = true;
-          socket.emit('input', teclas);
-        };
+        const roundBanner = document.getElementById('round-banner');
+        let roundBannerTimeout = null;
 
-        window.onkeyup = function(e) {
-          if (!socket) return;
-          if (['ArrowLeft', 'a', 'A'].includes(e.key)) teclas.left = false;
-          if (['ArrowRight', 'd', 'D'].includes(e.key)) teclas.right = false;
-          if (['ArrowUp', 'w', 'W'].includes(e.key)) teclas.up = false;
-          socket.emit('input', teclas);
-        };
+        socket.on('rondaGanada', (data) => {
+          if (roundBannerTimeout) clearTimeout(roundBannerTimeout);
+          const nombre = data.name ? data.name : 'P' + data.role;
+          roundBanner.innerText = '🏅 ' + nombre + ' GANÓ LA RONDA';
+          roundBanner.style.borderColor = data.color || '#00f0ff';
+          roundBanner.style.color = data.color || '#00f0ff';
+          roundBanner.classList.add('show');
+        });
+
+        socket.on('nuevaRonda', () => {
+          roundBannerTimeout = setTimeout(() => roundBanner.classList.remove('show'), 800);
+        });
+
+        socket.on('finDePartida', (data) => {
+          roundBanner.classList.remove('show');
+          mostrarPodio(data.podium);
+        });
+
+        socket.on('nuevaPartida', () => {
+          document.getElementById('podium-overlay').style.display = 'none';
+        });
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      function mostrarPodio(podium) {
+        const overlay = document.getElementById('podium-overlay');
+        const blocks = document.getElementById('podium-blocks');
+        blocks.innerHTML = '';
+
+        const orden = [1, 0, 2];
+        const alturas = [100, 140, 70];
+        const medallas = ['🥈', '🥇', '🥉'];
+
+        orden.forEach((idxPodio, posVisual) => {
+          const jugador = podium[idxPodio];
+          const div = document.createElement('div');
+          div.className = 'podium-block';
+
+          if (jugador) {
+            div.innerHTML =
+              '<div class="podium-label" style="color:' + jugador.color + '">' + medallas[posVisual] + ' ' + escapeHtml(jugador.name || 'P' + jugador.role) + '</div>' +
+              '<div class="podium-score">' + jugador.score + ' pts</div>' +
+              '<div class="podium-pillar" style="height:' + alturas[posVisual] + 'px; background:' + jugador.color + ';">' + (idxPodio + 1) + '</div>';
+          } else {
+            div.innerHTML =
+              '<div class="podium-label" style="color:#666">--</div>' +
+              '<div class="podium-score">&nbsp;</div>' +
+              '<div class="podium-pillar" style="height:' + alturas[posVisual] + 'px; background:#333;">' + (idxPodio + 1) + '</div>';
+          }
+          blocks.appendChild(div);
+        });
+
+        overlay.style.display = 'flex';
+      }
+
+      function drawWeapon(weaponKey, manoX, manoY, facing, isAttacking) {
+        const visual = WEAPON_VISUALS[weaponKey] || WEAPON_VISUALS.espada;
+        ctx.save();
+        ctx.translate(manoX, manoY);
+        ctx.scale(facing, 1);
+        ctx.strokeStyle = visual.accent;
+        ctx.fillStyle = visual.color;
+        ctx.lineWidth = 3;
+
+        if (weaponKey.includes('espada')) {
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(isAttacking ? 45 : 30, 0);
+          ctx.stroke();
+        } else {
+          ctx.fillRect(0, -3, 16, 6);
+        }
+        ctx.restore();
+      }
+
+      function drawPlayer(p) {
+        ctx.save();
+        ctx.strokeStyle = p.color;
+        ctx.fillStyle = p.color;
+        ctx.lineWidth = 3;
+
+        // Cabeza
+        ctx.beginPath();
+        ctx.arc(p.x, p.y - 20, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cuerpo
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y - 10);
+        ctx.lineTo(p.x, p.y + 15);
+        ctx.stroke();
+
+        // Piernas
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y + 15);
+        ctx.lineTo(p.x - 8, p.y + 32);
+        ctx.moveTo(p.x, p.y + 15);
+        ctx.lineTo(p.x + 8, p.y + 32);
+        ctx.stroke();
+
+        // Mano y Arma
+        const manoX = p.x + (p.facing === 1 ? 10 : -10);
+        const manoY = p.y;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y - 5);
+        ctx.lineTo(manoX, manoY);
+        ctx.stroke();
+
+        drawWeapon(p.weapon, manoX, manoY, p.facing, p.isAttacking);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.name || 'P' + p.role, p.x, p.y - 35);
+        ctx.restore();
+      }
+
+      function gameLoop() {
+        if (!socket) return;
+
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        const currentMap = MAPS[mapIndex] || MAPS[0];
+
+        ctx.fillStyle = currentMap.bg;
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        ctx.fillStyle = currentMap.floorColor;
+        if (currentMap.floorSegments) {
+          currentMap.floorSegments.forEach(([start, end]) => {
+            ctx.fillRect(start, FLOOR_Y, end - start, CANVAS_HEIGHT - FLOOR_Y);
+          });
+        }
+
+        if (currentMap.platforms) {
+          currentMap.platforms.forEach((plat) => {
+            ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+          });
+        }
+
+        Object.values(weaponPickups).forEach((pickup) => {
+          ctx.save();
+          ctx.fillStyle = '#00f0ff';
+          ctx.beginPath();
+          ctx.arc(pickup.x, pickup.y, 11, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#000';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(PICKUP_LETTER[pickup.type] || '?', pickup.x, pickup.y);
+          ctx.restore();
+        });
+
+        Object.values(bullets).forEach((b) => {
+          ctx.save();
+          ctx.fillStyle = '#ff0055';
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        Object.values(jugadores).forEach((p) => {
+          if (p.health > 0) drawPlayer(p);
+        });
+
+        requestAnimationFrame(gameLoop);
       }
     </script>
   </body>
