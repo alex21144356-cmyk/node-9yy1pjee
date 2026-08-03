@@ -1,15 +1,7 @@
-{
-  "name": "stickman-arcade-lite",
-  "version": "1.0.0",
-  "description": "Stickman Showdown optimizado para Render sin acentuaciones",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
+"dependencies": {
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-session": "^1.18.0",
     "mysql2": "^3.11.0",
     "socket.io": "^4.7.5"
   }
-}
