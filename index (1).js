@@ -10,8 +10,6 @@ const {
   obtenerArmas,
   actualizarArma,
   eliminarArma,
-  registrarEquipamiento,
-  guardarGanador,
   obtenerGanadores
 } = require('./db');
 
@@ -23,10 +21,9 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // ================================================================
-// APLICACION DE POO Y FUNCION RECURSIVA (REQUERIDO)
+// PROGRAMACION ORIENTADA A OBJETOS Y RECURSIVIDAD
 // ================================================================
 
-// Clase 1: Objeto Arma
 class Arma {
   constructor(id, nombre, tipo, dano) {
     this.id = id;
@@ -36,7 +33,6 @@ class Arma {
   }
 }
 
-// Clase 2: Gestor para administrar el inventario de la armeria
 class GestorArmeria {
   constructor() {
     this.inventario = [];
@@ -46,30 +42,29 @@ class GestorArmeria {
     this.inventario = lista.map(a => new Arma(a.id, a.nombre, a.tipo, a.dano));
   }
 
-  // FUNCION RECURSIVA: Suma recursiva de dano acumulado
+  // Algoritmo Recursivo: Calculo del dano acumulado en catalogo
   calcularDanoTotalRecursivo(lista, index = 0) {
     if (index >= lista.length) {
       return 0; // Caso base
     }
-    return lista[index].dano + this.calcularDanoTotalRecursivo(lista, index + 1); // Llamada recursiva
+    return lista[index].dano + this.calcularDanoTotalRecursivo(lista, index + 1);
   }
 }
 
 const armeriaManager = new GestorArmeria();
 
 // ================================================================
-// ENDPOINTS API / RUTAS
+// RUTAS REST / API
 // ================================================================
 
-// Ruta principal
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-// Autenticacion: Crear Cuenta
+// Registro de usuario
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body || {};
-  if (!username || !password) return res.status(400).json({ error: 'Datos incompletos' });
+  if (!username || !password) return res.status(400).json({ error: 'Faltan datos' });
 
   try {
     const existe = await buscarUsuarioPorNombre(username);
@@ -78,25 +73,25 @@ app.post('/api/register', async (req, res) => {
     await crearUsuario(username, password);
     res.json({ username });
   } catch (err) {
-    res.status(500).json({ error: 'Error al registrar usuario' });
+    res.status(500).json({ error: 'Error en el servidor al registrar' });
   }
 });
 
-// Autenticacion: Inicio de Sesion
+// Inicio de sesion
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body || {};
   try {
     const usuario = await buscarUsuarioPorNombre(username);
     if (!usuario || usuario.password !== password) {
-      return res.status(401).json({ error: 'Usuario o contrasena incorrectos' });
+      return res.status(401).json({ error: 'Credenciales invalidas' });
     }
     res.json({ username: usuario.username });
   } catch (err) {
-    res.status(500).json({ error: 'Error al iniciar sesion' });
+    res.status(500).json({ error: 'Error en el servidor al iniciar sesion' });
   }
 });
 
-// CRUD de Armas (Consulta con POO y Recursividad)
+// CRUD Catalogo de Armas
 app.get('/api/armas', async (req, res) => {
   try {
     const armasBD = await obtenerArmas();
@@ -137,7 +132,7 @@ app.delete('/api/armas/:id', async (req, res) => {
   }
 });
 
-// Tabla de Puntajes (Salón de la Fama)
+// Obtener Puntajes
 app.get('/api/ganadores', async (req, res) => {
   try {
     const ganadores = await obtenerGanadores();
@@ -148,31 +143,19 @@ app.get('/api/ganadores', async (req, res) => {
 });
 
 // ================================================================
-// LOGICA SOCKET.IO PARA MULTIJUGADOR EN TIEMPO REAL
+// MULTIJUGADOR SOCKET.IO
 // ================================================================
 let estadoJuego = {
-  players: {},
-  bullets: {},
-  weaponPickups: {},
-  mapIndex: 0
+  players: {}
 };
 
 io.on('connection', (socket) => {
-  console.log('Jugador conectado:', socket.id);
-
   estadoJuego.players[socket.id] = {
     id: socket.id,
     name: 'Jugador',
     x: 100 + Math.random() * 600,
-    y: 300,
-    vx: 0,
+    y: 390,
     vy: 0,
-    health: 100,
-    score: 0,
-    facing: 'right',
-    weapon: 'espada',
-    isAlive: true,
-    role: Object.keys(estadoJuego.players).length + 1,
     color: ['#ff0055', '#00f0ff', '#00ff66', '#ffcc00'][Math.floor(Math.random() * 4)]
   };
 
@@ -186,10 +169,10 @@ io.on('connection', (socket) => {
 
   socket.on('input', (inputs) => {
     const p = estadoJuego.players[socket.id];
-    if (p && p.isAlive) {
-      if (inputs.left) { p.x -= 5; p.facing = 'left'; }
-      if (inputs.right) { p.x += 5; p.facing = 'right'; }
-      if (inputs.up && p.y >= 390) { p.vy = -12; }
+    if (p) {
+      if (inputs.left) p.x -= 8;
+      if (inputs.right) p.x += 8;
+      if (inputs.up && p.y >= 390) p.vy = -12;
     }
   });
 
@@ -198,19 +181,23 @@ io.on('connection', (socket) => {
   });
 });
 
-// Bucle de actualizacion del juego ligero
+// Bucle del servidor a 30 FPS para ahorrar CPU
 setInterval(() => {
   Object.values(estadoJuego.players).forEach(p => {
     p.y += p.vy;
-    if (p.y < 390) p.vy += 0.8;
-    else { p.y = 390; p.vy = 0; }
+    if (p.y < 390) {
+      p.vy += 0.8; // Gravedad
+    } else {
+      p.y = 390;
+      p.vy = 0;
+    }
   });
   io.emit('estadoJuego', estadoJuego);
 }, 1000 / 30);
 
-// Arranque de la app
+// Arranque
 initDB();
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Servidor activo en puerto ${PORT}`);
+  console.log(`Servidor escuchando en puerto ${PORT}`);
 });
