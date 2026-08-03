@@ -14,18 +14,16 @@ const app = express();
 const http = require('http').createServer(app);
 
 const io = require('socket.io')(http, {
-  cors: { origin: '*' },
-  perMessageDeflate: { threshold: 256 },
-  httpCompression: true
+  cors: { origin: '*' }
 });
 
 app.use(express.json());
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'stickman_supreme_secreto_cambiar',
+    secret: process.env.SESSION_SECRET || 'stickman_secreto_123',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 * 24 * 30 },
+    cookie: { maxAge: 1000 * 60 * 60 * 24 },
   })
 );
 
@@ -33,15 +31,13 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-// RUTAS AUTH
+// AUTENTICACIÓN
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'Faltan datos' });
-
   try {
     const existente = await buscarUsuarioPorNombre(username);
     if (existente) return res.status(409).json({ error: 'El usuario ya existe' });
-
     const hash = await bcrypt.hash(password, 10);
     await crearUsuario(username, hash);
     req.session.username = username;
@@ -56,10 +52,8 @@ app.post('/api/login', async (req, res) => {
   try {
     const usuario = await buscarUsuarioPorNombre(username);
     if (!usuario) return res.status(401).json({ error: 'Credenciales inválidas' });
-
     const coincide = await bcrypt.compare(password, usuario.password_hash);
     if (!coincide) return res.status(401).json({ error: 'Credenciales inválidas' });
-
     req.session.username = username;
     res.json({ username });
   } catch (err) {
@@ -85,14 +79,16 @@ app.get('/api/ganadores', async (req, res) => {
   }
 });
 
-// CONFIGURACIÓN DE ARENA Y SOCKETS
+// LÓGICA DE JUGADORES Y ARENA
 let players = {};
 const MAX_PLAYERS = 4;
+
+// POSICIONES DENTRO DEL PISO DENTRO DEL CANVAS (Y = 385)
 const ROLE_CONFIG = {
-  1: { x: 150, y: 300, color: '#ff4757', facing: 1 },
-  2: { x: 350, y: 300, color: '#2ed573', facing: 1 },
-  3: { x: 500, y: 300, color: '#1e90ff', facing: -1 },
-  4: { x: 650, y: 300, color: '#9b59b6', facing: -1 },
+  1: { x: 150, y: 385, color: '#ff4757', facing: 1 },
+  2: { x: 300, y: 385, color: '#2ed573', facing: 1 },
+  3: { x: 500, y: 385, color: '#1e90ff', facing: -1 },
+  4: { x: 650, y: 385, color: '#9b59b6', facing: -1 },
 };
 
 io.on('connection', (socket) => {
@@ -104,10 +100,12 @@ io.on('connection', (socket) => {
     if (!ocupado) { role = r; break; }
   }
 
-  // Si no hay espacio, entra en rol espectador (> 4)
-  if (role === null) role = MAX_PLAYERS + 1;
+  // SI LA SALA ESTÁ LLENA, NO LES ASIGNA COORDENADAS FUERA DEL MAPA
+  if (role === null) {
+    role = 99; // Rol Espectador
+  }
 
-  const cfg = ROLE_CONFIG[role] || { x: 400, y: 300, color: '#95a5a6', facing: 1 };
+  const cfg = ROLE_CONFIG[role] || { x: -100, y: -100, color: '#00f0ff', facing: 1 };
 
   players[socket.id] = {
     id: socket.id,
@@ -120,8 +118,7 @@ io.on('connection', (socket) => {
     facing: cfg.facing,
     color: cfg.color,
     score: 0,
-    weapon: 'espada',
-    name: 'Jugador' + role,
+    name: 'Jugador',
     inputs: { left: false, right: false, up: false, attack: false }
   };
 
@@ -143,11 +140,11 @@ io.on('connection', (socket) => {
   });
 });
 
-// FISICA Y LOOP (60 FPS)
+// FÍSICAS (60 FPS)
 setInterval(() => {
   for (let id in players) {
     let p = players[id];
-    if (p.role > MAX_PLAYERS) continue; // Salta espectadores
+    if (p.role > MAX_PLAYERS) continue; // Si es espectador no procesa movimiento
 
     if (p.inputs.left) { p.vx = -5; p.facing = -1; }
     else if (p.inputs.right) { p.vx = 5; p.facing = 1; }
@@ -159,13 +156,14 @@ setInterval(() => {
     p.y += p.vy;
     p.vy += 0.6; // Gravedad
 
+    // Límites del mapa
     if (p.y >= 385) { p.y = 385; p.vy = 0; }
-    if (p.x < 20) p.x = 20;
-    if (p.x > 780) p.x = 780;
+    if (p.x < 30) p.x = 30;
+    if (p.x > 770) p.x = 770;
   }
 }, 1000 / 60);
 
-// ACTUALIZACIÓN DE ESTADO A CLIENTES (20 FPS)
+// EMITIR A CLIENTES
 setInterval(() => {
   io.emit('estadoJuego', { players, mapIndex: 0 });
 }, 50);
@@ -174,5 +172,5 @@ initDB();
 
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => {
-  console.log(`Servidor activo en puerto ${PORT}`);
+  console.log(`Servidor activo en el puerto ${PORT}`);
 });
