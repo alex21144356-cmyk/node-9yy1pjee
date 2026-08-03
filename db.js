@@ -1,44 +1,51 @@
-// ============== CONEXIÓN Y CONSULTAS A MYSQL ==============
 const mysql = require('mysql2/promise');
+require('dotenv').config();
 
+// Configuración del pool de conexiones
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'stickman',
+  database: process.env.DB_NAME || 'stickman_db',
+  port: process.env.DB_PORT || 3306,
   waitForConnections: true,
-  connectionLimit: 5,
+  connectionLimit: 10,
   queueLimit: 0,
 });
 
-// Inicialización de la base de datos (Tablas "usuarios" y "ganadores")
+// Función para inicializar las tablas
 async function initDB() {
   try {
-    await pool.query(`
+    const connection = await pool.getConnection();
+
+    // Tabla de usuarios
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(20) UNIQUE NOT NULL,
+        username VARCHAR(50) NOT NULL UNIQUE,
         password_hash VARCHAR(255) NOT NULL,
-        fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
+        fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
     `);
 
-    await pool.query(`
+    // Tabla de ganadores
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS ganadores (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        nombre VARCHAR(30) NOT NULL,
-        puntuacion INT NOT NULL,
-        fecha DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
+        nombre VARCHAR(50) NOT NULL,
+        puntuacion INT DEFAULT 0,
+        fecha_victoria TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
     `);
-    console.log('✅ Conectado a MySQL. Tablas "usuarios" y "ganadores" listas.');
+
+    connection.release();
+    console.log('✅ Base de datos inicializada correctamente');
   } catch (err) {
     console.error('❌ No se pudo conectar a MySQL:', err.message);
   }
 }
 
-// ============== FUNCIONES DE USUARIOS ==============
+// Funciones para consultas
 async function crearUsuario(username, passwordHash) {
   const [result] = await pool.query(
     'INSERT INTO usuarios (username, password_hash) VALUES (?, ?)',
@@ -52,25 +59,20 @@ async function buscarUsuarioPorNombre(username) {
     'SELECT * FROM usuarios WHERE username = ?',
     [username]
   );
-  return rows[0] || null;
+  return rows[0];
 }
 
-// ============== FUNCIONES DE GANADORES ==============
 async function guardarGanador(nombre, puntuacion) {
-  try {
-    await pool.query('INSERT INTO ganadores (nombre, puntuacion) VALUES (?, ?)', [
-      nombre,
-      puntuacion,
-    ]);
-    console.log('🏆 Ganador guardado en MySQL:', nombre, puntuacion, 'pts');
-  } catch (err) {
-    console.error('Error guardando ganador en MySQL:', err.message);
-  }
+  const [result] = await pool.query(
+    'INSERT INTO ganadores (nombre, puntuacion) VALUES (?, ?)',
+    [nombre, puntuacion]
+  );
+  return result;
 }
 
 async function obtenerGanadores() {
   const [rows] = await pool.query(
-    'SELECT nombre, puntuacion, fecha FROM ganadores ORDER BY puntuacion DESC, fecha DESC LIMIT 50'
+    'SELECT nombre, puntuacion, fecha_victoria FROM ganadores ORDER BY puntuacion DESC LIMIT 10'
   );
   return rows;
 }
