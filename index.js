@@ -1,7 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const session = require('express-session');
-const bcrypt = require('bcryptjs');
 const {
   initDB,
   guardarGanador,
@@ -18,58 +16,12 @@ const io = require('socket.io')(http, {
 });
 
 app.use(express.json());
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'stickman_secreto_123',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 * 24 },
-  })
-);
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-// AUTENTICACIÓN
-app.post('/api/register', async (req, res) => {
-  const { username, password } = req.body || {};
-  if (!username || !password) return res.status(400).json({ error: 'Faltan datos' });
-  try {
-    const existente = await buscarUsuarioPorNombre(username);
-    if (existente) return res.status(409).json({ error: 'El usuario ya existe' });
-    const hash = await bcrypt.hash(password, 10);
-    await crearUsuario(username, hash);
-    req.session.username = username;
-    res.json({ username });
-  } catch (err) {
-    res.status(500).json({ error: 'Error al registrar' });
-  }
-});
-
-app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body || {};
-  try {
-    const usuario = await buscarUsuarioPorNombre(username);
-    if (!usuario) return res.status(401).json({ error: 'Credenciales inválidas' });
-    const coincide = await bcrypt.compare(password, usuario.password_hash);
-    if (!coincide) return res.status(401).json({ error: 'Credenciales inválidas' });
-    req.session.username = username;
-    res.json({ username });
-  } catch (err) {
-    res.status(500).json({ error: 'Error en inicio de sesión' });
-  }
-});
-
-app.post('/api/logout', (req, res) => {
-  req.session.destroy(() => res.json({ ok: true }));
-});
-
-app.get('/api/me', (req, res) => {
-  if (req.session && req.session.username) res.json({ username: req.session.username });
-  else res.status(401).json({ error: 'No autenticado' });
-});
-
+// RUTAS API DE GANADORES Y REGISTRO (SIN SESSION)
 app.get('/api/ganadores', async (req, res) => {
   try {
     const ganadores = await obtenerGanadores();
@@ -100,9 +52,9 @@ io.on('connection', (socket) => {
     if (!ocupado) { role = r; break; }
   }
 
-  // SI LA SALA ESTÁ LLENA, NO LES ASIGNA COORDENADAS FUERA DEL MAPA
+  // SI LA SALA ESTÁ LLENA
   if (role === null) {
-    role = 99; // Rol Espectador
+    role = 99; // Rol Espectador (No genera mono fuera del lienzo)
   }
 
   const cfg = ROLE_CONFIG[role] || { x: -100, y: -100, color: '#00f0ff', facing: 1 };
@@ -144,7 +96,7 @@ io.on('connection', (socket) => {
 setInterval(() => {
   for (let id in players) {
     let p = players[id];
-    if (p.role > MAX_PLAYERS) continue; // Si es espectador no procesa movimiento
+    if (p.role > MAX_PLAYERS) continue; // Espectadores no se mueven ni estorban
 
     if (p.inputs.left) { p.vx = -5; p.facing = -1; }
     else if (p.inputs.right) { p.vx = 5; p.facing = 1; }
@@ -156,14 +108,14 @@ setInterval(() => {
     p.y += p.vy;
     p.vy += 0.6; // Gravedad
 
-    // Límites del mapa
+    // Límites del mapa (piso y paredes)
     if (p.y >= 385) { p.y = 385; p.vy = 0; }
     if (p.x < 30) p.x = 30;
     if (p.x > 770) p.x = 770;
   }
 }, 1000 / 60);
 
-// EMITIR A CLIENTES
+// TRANSMISIÓN A CLIENTES (20 FPS)
 setInterval(() => {
   io.emit('estadoJuego', { players, mapIndex: 0 });
 }, 50);
