@@ -1,5 +1,4 @@
 
-
 const mysql = require('mysql2/promise');
 
 // Configura la conexion a MySQL
@@ -63,6 +62,20 @@ async function initDB() {
   } catch (err) {
     console.error('Error al inicializar MySQL:', err.message); // se documenta el error en consola
   }
+
+  // Migracion segura: si la tabla "ganadores" ya existia de antes (sin la
+  // columna "victorias"), se la agregamos ahora. Si ya existe, MySQL avisa
+  // con el error "Duplicate column name" y simplemente lo ignoramos: esto
+  // hace que sea seguro correr esta migracion cada vez que arranca el
+  // servidor, sin romper nada de lo que ya estaba funcionando.
+  try {
+    await pool.query('ALTER TABLE ganadores ADD COLUMN victorias INT NOT NULL DEFAULT 1');
+    console.log('Columna "victorias" agregada a la tabla ganadores.');
+  } catch (err) {
+    if (!/duplicate column/i.test(err.message)) {
+      console.error('Error al migrar la tabla ganadores:', err.message);
+    }
+  }
 }
 
 // ---------------- USUARIOS (login / registro) ----------------
@@ -104,16 +117,40 @@ async function registrarEquipamiento(usuarioId, armaId) {
 
 // ---------------- GANADORES (tabla de puntajes) ----------------
 
+// Guarda al ganador de una partida. Si ese jugador ya habia ganado antes,
+// le suma los puntos y las victorias a su fila existente (se van
+// acumulando); si es la primera vez que gana, crea su fila en el salon
+// de la fama.
 async function guardarGanador(nombre, puntuacion) {
   try {
-    await pool.query('INSERT INTO ganadores (nombre, puntuacion) VALUES (?, ?)', [nombre, puntuacion]);
+    const [existentes] = await pool.query(
+      'SELECT id, puntuacion, victorias FROM ganadores WHERE nombre = ? ORDER BY fecha DESC LIMIT 1',
+      [nombre]
+    );
+
+    if (existentes.length > 0) {
+      const actual = existentes[0];
+      await pool.query(
+        'UPDATE ganadores SET puntuacion = ?, victorias = ?, fecha = CURRENT_TIMESTAMP WHERE id = ?',
+        [actual.puntuacion + puntuacion, actual.victorias + 1, actual.id]
+      );
+    } else {
+      await pool.query('INSERT INTO ganadores (nombre, puntuacion, victorias) VALUES (?, ?, 1)', [
+        nombre,
+        puntuacion,
+      ]);
+    }
   } catch (err) {
     console.error('Error al guardar ganador:', err.message);
   }
 }
 
+// Salon de la fama: ordenado por victorias (y de segundo criterio, por
+// puntos acumulados), para que arriba queden los que mas veces han ganado.
 async function obtenerGanadores() {
-  const [rows] = await pool.query('SELECT nombre, puntuacion, fecha FROM ganadores ORDER BY fecha DESC LIMIT 50');
+  const [rows] = await pool.query(
+    'SELECT nombre, puntuacion, victorias, fecha FROM ganadores ORDER BY victorias DESC, puntuacion DESC LIMIT 50'
+  );
   return rows;
 }
 
