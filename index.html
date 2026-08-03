@@ -600,7 +600,7 @@
                 '<div class="score-row">' +
                 '<span class="score-pos">#' + (i + 1) + '</span>' +
                 '<span class="score-name">' + escapeHtml(g.nombre) + '</span>' +
-                '<span class="score-pts">' + g.puntuacion + ' pts</span>' +
+                '<span class="score-pts">' + (g.victorias || 1) + ' victorias &middot; ' + g.puntuacion + ' pts</span>' +
                 '</div>'
             )
             .join('');
