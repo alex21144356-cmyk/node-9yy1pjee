@@ -2,37 +2,29 @@ require('dotenv').config();
 const express = require('express');
 const {
   initDB,
-  guardarGanador,
-  obtenerGanadores,
   crearUsuario,
   buscarUsuarioPorNombre,
+  obtenerGanadores
 } = require('./db');
 
 const app = express();
 const http = require('http').createServer(app);
-
-const io = require('socket.io')(http, {
-  cors: { origin: '*' }
-});
+const io = require('socket.io')(http, { cors: { origin: '*' } });
 
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
-});
+app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 
-// --- RUTAS DE AUTENTICACIÓN Y API ---
+// API RUTAS
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'Faltan datos' });
   try {
-    const existente = await buscarUsuarioPorNombre(username);
-    if (existente) return res.status(409).json({ error: 'El usuario ya existe' });
-    
+    const ex = await buscarUsuarioPorNombre(username);
+    if (ex) return res.status(409).json({ error: 'El usuario ya existe' });
     await crearUsuario(username, password);
     res.json({ username });
-  } catch (err) {
-    console.error("Error al registrar:", err);
+  } catch (e) {
     res.status(500).json({ error: 'Error al registrar' });
   }
 });
@@ -40,84 +32,39 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body || {};
   try {
-    const usuario = await buscarUsuarioPorNombre(username);
-    if (!usuario) return res.status(401).json({ error: 'Credenciales inválidas' });
-    
-    if (usuario.password_hash !== password) {
-      return res.status(401).json({ error: 'Credenciales inválidas' });
-    }
+    const u = await buscarUsuarioPorNombre(username);
+    if (!u || u.password_hash !== password) return res.status(401).json({ error: 'Credenciales inválidas' });
     res.json({ username });
-  } catch (err) {
+  } catch (e) {
     res.status(500).json({ error: 'Error en inicio de sesión' });
   }
 });
 
-app.get('/api/ganadores', async (req, res) => {
-  try {
-    const ganadores = await obtenerGanadores();
-    res.json(ganadores);
-  } catch (err) {
-    res.status(500).json({ error: 'Error consultando ganadores' });
-  }
-});
+// CONFIGURACIÓN DE ARMAS
+const ARMAS = {
+  'Fusil': { dao: 18, cooldown: 250, velocidad: 14, tipo: 'distancia', color: '#ffeb3b' },
+  'Subfusil': { dao: 9, cooldown: 110, velocidad: 16, tipo: 'distancia', color: '#ff9800' },
+  'Espada': { dao: 35, cooldown: 400, alcance: 45, tipo: 'mele', color: '#ffffff' },
+  'Escopeta': { dao: 12, cooldown: 650, velocidad: 12, tipo: 'escopeta', color: '#e91e63' },
+  'Gancho': { dao: 15, cooldown: 500, velocidad: 18, tipo: 'distancia', color: '#00e676' },
+  'Francotirador': { dao: 60, cooldown: 1000, velocidad: 24, tipo: 'distancia', color: '#00e5ff' }
+};
 
-// --- CONFIGURACIÓN DE ARMAS Y MAPAS ---
-const ARMAS_DISPONIBLES = [
-  { nombre: 'Fusil', color: '#ffeb3b', dao: 15 },
-  { nombre: 'Subfusil', color: '#ff9800', dao: 8 },
-  { nombre: 'Espada', color: '#ffffff', dao: 25 },
-  { nombre: 'Escopeta', color: '#e91e63', dao: 30 },
-  { nombre: 'Gancho', color: '#00e676', dao: 5 },
-  { nombre: 'Francotirador', color: '#00e5ff', dao: 50 }
-];
+const NOMBRES_ARMAS = Object.keys(ARMAS);
 
-// 5 MAPAS (2 de ellos con abismo/caída al vacío)
+// MAPAS (2 con vacío)
 const MAPAS = [
-  {
-    nombre: 'Arena Clásica',
-    tieneVacio: false,
-    plataformas: [{ x: 0, y: 385, w: 800, h: 65 }]
-  },
-  {
-    nombre: 'Islas Flotantes (¡Peligro de Caída!)',
-    tieneVacio: true,
-    plataformas: [
-      { x: 50, y: 350, w: 200, h: 20 },
-      { x: 300, y: 280, w: 200, h: 20 },
-      { x: 550, y: 350, w: 200, h: 20 }
-    ]
-  },
-  {
-    nombre: 'La Grieta (¡Abismo Central!)',
-    tieneVacio: true,
-    plataformas: [
-      { x: 0, y: 385, w: 320, h: 65 },
-      { x: 480, y: 385, w: 320, h: 65 }
-    ]
-  },
-  {
-    nombre: 'Torres Duales',
-    tieneVacio: false,
-    plataformas: [
-      { x: 0, y: 385, w: 800, h: 65 },
-      { x: 100, y: 270, w: 180, h: 15 },
-      { x: 520, y: 270, w: 180, h: 15 }
-    ]
-  },
-  {
-    nombre: 'Búnker Multinivel',
-    tieneVacio: false,
-    plataformas: [
-      { x: 0, y: 385, w: 800, h: 65 },
-      { x: 200, y: 300, w: 400, h: 15 },
-      { x: 100, y: 200, w: 200, h: 15 },
-      { x: 500, y: 200, w: 200, h: 15 }
-    ]
-  }
+  { nombre: 'Arena Clásica', tieneVacio: false, plataformas: [{ x: 0, y: 385, w: 800, h: 65 }] },
+  { nombre: 'Islas Flotantes (Abismo)', tieneVacio: true, plataformas: [{ x: 50, y: 350, w: 200, h: 20 }, { x: 300, y: 280, w: 200, h: 20 }, { x: 550, y: 350, w: 200, h: 20 }] },
+  { nombre: 'La Grieta (Abismo)', tieneVacio: true, plataformas: [{ x: 0, y: 385, w: 320, h: 65 }, { x: 480, y: 385, w: 320, h: 65 }] },
+  { nombre: 'Torres Duales', tieneVacio: false, plataformas: [{ x: 0, y: 385, w: 800, h: 65 }, { x: 100, y: 270, w: 180, h: 15 }, { x: 520, y: 270, w: 180, h: 15 }] },
+  { nombre: 'Búnker Multinivel', tieneVacio: false, plataformas: [{ x: 0, y: 385, w: 800, h: 65 }, { x: 200, y: 300, w: 400, h: 15 }, { x: 100, y: 200, w: 200, h: 15 }, { x: 500, y: 200, w: 200, h: 15 }] }
 ];
 
 let mapaActualIndex = 0;
-let itemsArmas = []; // Bolitas de armas en el mapa
+let itemsArmas = [];
+let proyectiles = [];
+let efectosAtaque = []; // Cortes de espada, destellos
 let players = {};
 const MAX_PLAYERS = 4;
 
@@ -128,35 +75,31 @@ const ROLE_CONFIG = {
   4: { x: 650, y: 300, color: '#9b59b6', facing: -1 },
 };
 
-// GENERAR BOLITAS DE ARMAS CADA 5 SEGUNDOS
+// GENERAR BOLITAS DE ARMAS CADA 5s
 setInterval(() => {
   if (itemsArmas.length < 5) {
     const mapa = MAPAS[mapaActualIndex];
     const plat = mapa.plataformas[Math.floor(Math.random() * mapa.plataformas.length)];
-    const armaRandom = ARMAS_DISPONIBLES[Math.floor(Math.random() * ARMAS_DISPONIBLES.length)];
-
+    const nombre = NOMBRES_ARMAS[Math.floor(Math.random() * NOMBRES_ARMAS.length)];
     itemsArmas.push({
-      id: Date.now() + Math.random(),
+      id: Math.random(),
       x: plat.x + 20 + Math.random() * (plat.w - 40),
-      y: plat.y - 15,
-      arma: armaRandom.nombre,
-      color: armaRandom.color
+      y: plat.y - 18,
+      arma: nombre,
+      color: ARMAS[nombre].color
     });
   }
 }, 5000);
 
 io.on('connection', (socket) => {
-  let activePlayers = Object.values(players);
+  let active = Object.values(players);
   let role = null;
-
   for (let r = 1; r <= MAX_PLAYERS; r++) {
-    let ocupado = activePlayers.some((p) => p.role === r);
-    if (!ocupado) { role = r; break; }
+    if (!active.some(p => p.role === r)) { role = r; break; }
   }
+  if (!role) role = 99;
 
-  if (role === null) role = 99; // Espectador
-
-  const cfg = ROLE_CONFIG[role] || { x: -100, y: -100, color: '#00f0ff', facing: 1 };
+  const cfg = ROLE_CONFIG[role] || { x: 400, y: 100, color: '#00f0ff', facing: 1 };
 
   players[socket.id] = {
     id: socket.id,
@@ -169,109 +112,189 @@ io.on('connection', (socket) => {
     facing: cfg.facing,
     color: cfg.color,
     score: 0,
-    name: 'Jugador',
+    name: `P${role}`,
     arma: 'Espada',
+    lastAttack: 0,
     inputs: { left: false, right: false, up: false, attack: false }
   };
 
-  socket.emit('init', { id: socket.id });
+  socket.emit('init', { id: socket.id, role });
 
-  socket.on('input', (keys) => {
+  socket.on('input', keys => {
     if (players[socket.id]) players[socket.id].inputs = keys;
   });
 
-  socket.on('setName', (nombre) => {
-    if (players[socket.id] && typeof nombre === 'string') {
-      const limpio = nombre.trim().slice(0, 20);
-      if (limpio) players[socket.id].name = limpio;
-    }
+  socket.on('setName', name => {
+    if (players[socket.id] && name) players[socket.id].name = name.slice(0, 15);
   });
 
-  socket.on('cambiarMapa', (index) => {
-    if (index >= 0 && index < MAPAS.length) {
-      mapaActualIndex = index;
-      itemsArmas = [];
-    }
-  });
-
-  socket.on('disconnect', () => {
-    delete players[socket.id];
-  });
+  socket.on('disconnect', () => delete players[socket.id]);
 });
 
-// FÍSICAS (60 FPS)
+function respawn(p) {
+  const cfg = ROLE_CONFIG[p.role] || { x: 400, y: 100 };
+  p.x = cfg.x;
+  p.y = 100;
+  p.vy = 0;
+  p.health = 100;
+}
+
+// FÍSICAS Y DISPAROS (60 FPS)
 setInterval(() => {
   const mapa = MAPAS[mapaActualIndex];
+  const ahora = Date.now();
 
   for (let id in players) {
     let p = players[id];
     if (p.role > MAX_PLAYERS) continue;
 
-    if (p.inputs.left) { p.vx = -5; p.facing = -1; }
-    else if (p.inputs.right) { p.vx = 5; p.facing = 1; }
+    // Movimiento
+    if (p.inputs.left) { p.vx = -4.5; p.facing = -1; }
+    else if (p.inputs.right) { p.vx = 4.5; p.facing = 1; }
     else { p.vx = 0; }
 
-    p.vy += 0.6; // Gravedad
+    p.vy += 0.55; // Gravedad
     p.x += p.vx;
     p.y += p.vy;
 
-    // Detección de Colisión con Plataformas
+    // Colisión plataformas
     let enSuelo = false;
     mapa.plataformas.forEach(plat => {
-      if (
-        p.x >= plat.x - 15 &&
-        p.x <= plat.x + plat.w + 15 &&
-        p.y >= plat.y - 35 && p.y <= plat.y + 10 &&
-        p.vy >= 0
-      ) {
+      if (p.x >= plat.x - 12 && p.x <= plat.x + plat.w + 12 && p.y >= plat.y - 35 && p.y <= plat.y + 10 && p.vy >= 0) {
         p.y = plat.y - 35;
         p.vy = 0;
         enSuelo = true;
       }
     });
 
-    if (p.inputs.up && enSuelo) {
-      p.vy = -12; // Salto
-    }
+    if (p.inputs.up && enSuelo) p.vy = -11.5;
 
-    // Límite de Paredes Laterales
+    // Paredes
     if (p.x < 15) p.x = 15;
     if (p.x > 785) p.x = 785;
 
-    // CAÍDA AL VACÍO (Muerte y Respawn)
+    // Caída al vacío
     if (p.y > 480) {
-      const cfg = ROLE_CONFIG[p.role] || { x: 400, y: 100 };
-      p.x = cfg.x;
-      p.y = 100;
-      p.vy = 0;
-      p.health = Math.max(0, p.health - 25); // Pierde 25 de vida al caer
+      respawn(p);
     }
 
-    // RECOGIDA DE ARMAS (Colisión con Bolitas)
+    // Recoger armas
     for (let i = itemsArmas.length - 1; i >= 0; i--) {
       let item = itemsArmas[i];
-      let dist = Math.hypot(p.x - item.x, p.y - item.y);
-      if (dist < 25) {
-        p.arma = item.arma; // Equipa el arma
-        itemsArmas.splice(i, 1); // Desaparece la bolita
+      if (Math.hypot(p.x - item.x, p.y - item.y) < 22) {
+        p.arma = item.arma;
+        itemsArmas.splice(i, 1);
+      }
+    }
+
+    // DISPARAR / ATACAR (ESPACIO)
+    if (p.inputs.attack && ahora - p.lastAttack > (ARMAS[p.arma]?.cooldown || 300)) {
+      p.lastAttack = ahora;
+      const configArma = ARMAS[p.arma];
+
+      if (configArma.tipo === 'mele') {
+        // Ataque cuerpo a cuerpo (Espada)
+        efectosAtaque.push({
+          x: p.x + (p.facing * 20),
+          y: p.y - 15,
+          facing: p.facing,
+          tipo: 'corte',
+          duracion: 8
+        });
+
+        // Detectar golpe a otros jugadores
+        for (let targetId in players) {
+          if (targetId === id) continue;
+          let target = players[targetId];
+          let dist = Math.hypot((p.x + p.facing * 25) - target.x, (p.y - 15) - target.y);
+          if (dist < 40) {
+            target.health -= configArma.dao;
+            if (target.health <= 0) {
+              p.score += 1;
+              respawn(target);
+            }
+          }
+        }
+      } else if (configArma.tipo === 'escopeta') {
+        // Escopeta (3 perdigones)
+        [-0.15, 0, 0.15].forEach(angulo => {
+          proyectiles.push({
+            x: p.x + (p.facing * 20),
+            y: p.y - 15,
+            vx: Math.cos(angulo) * configArma.velocidad * p.facing,
+            vy: Math.sin(angulo) * configArma.velocidad,
+            dao: configArma.dao,
+            owner: id,
+            color: configArma.color,
+            tipo: 'escopeta',
+            vida: 25
+          });
+        });
+      } else {
+        // Fusil, Subfusil, Francotirador, Gancho
+        proyectiles.push({
+          x: p.x + (p.facing * 20),
+          y: p.y - 15,
+          vx: configArma.velocidad * p.facing,
+          vy: 0,
+          dao: configArma.dao,
+          owner: id,
+          color: configArma.color,
+          tipo: p.arma.toLowerCase(),
+          vida: 60
+        });
       }
     }
   }
+
+  // MOVER Y COLISIONAR PROYECTILES
+  for (let i = proyectiles.length - 1; i >= 0; i--) {
+    let proj = proyectiles[i];
+    proj.x += proj.vx;
+    proj.y += proj.vy;
+    proj.vida--;
+
+    let impacto = false;
+
+    // Impacto con jugadores
+    for (let id in players) {
+      let target = players[id];
+      if (id !== proj.owner && Math.hypot(proj.x - target.x, proj.y - (target.y - 15)) < 20) {
+        target.health -= proj.dao;
+        if (target.health <= 0) {
+          if (players[proj.owner]) players[proj.owner].score += 1;
+          respawn(target);
+        }
+        impacto = true;
+        break;
+      }
+    }
+
+    // Paredes / Limite
+    if (impacto || proj.vida <= 0 || proj.x < 0 || proj.x > 800) {
+      proyectiles.splice(i, 1);
+    }
+  }
+
+  // Limpiar efectos de ataque
+  for (let i = efectosAtaque.length - 1; i >= 0; i--) {
+    efectosAtaque[i].duracion--;
+    if (efectosAtaque[i].duracion <= 0) efectosAtaque.splice(i, 1);
+  }
+
 }, 1000 / 60);
 
-// TRANSMISIÓN A CLIENTES (20 FPS)
+// EMITIR ESTADO (20 FPS)
 setInterval(() => {
   io.emit('estadoJuego', {
     players,
     mapa: MAPAS[mapaActualIndex],
-    mapaIndex: mapaActualIndex,
-    itemsArmas
+    itemsArmas,
+    proyectiles,
+    efectosAtaque
   });
 }, 50);
 
 initDB();
-
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
-  console.log(`Servidor activo en el puerto ${PORT}`);
-});
+http.listen(PORT, () => console.log(`Servidor listo en puerto ${PORT}`));
