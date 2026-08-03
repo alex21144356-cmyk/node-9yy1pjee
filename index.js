@@ -560,3 +560,61 @@ const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => {
   console.log(`Servidor activo en el puerto ${PORT}`);
 });
+function drawPlayer(ctx, player) {
+    if (!player || !player.alive) return;
+
+    const { x, y, color, facing } = player; // facing: 1 (derecha) o -1 (izquierda)
+
+    ctx.save();
+    ctx.strokeStyle = color || '#00FFFF';
+    ctx.lineWidth = 3;
+
+    // --- Cabeza ---
+    ctx.beginPath();
+    ctx.arc(x, y - 20, 10, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // --- Cuerpo ---
+    ctx.beginPath();
+    ctx.moveTo(x, y - 10);
+    ctx.lineTo(x, y + 15);
+    ctx.stroke();
+
+    // --- Piernas ---
+    ctx.beginPath();
+    ctx.moveTo(x, y + 15);
+    ctx.lineTo(x - 10, y + 35);
+    ctx.moveTo(x, y + 15);
+    ctx.lineTo(x + 10, y + 35);
+    ctx.stroke();
+
+    // --- Brazos ---
+    const dir = facing || 1; // Dirección
+    const handX = x + (12 * dir);
+    const handY = y;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y - 5);
+    ctx.lineTo(handX, handY); // Brazo derecho sosteniendo la espada
+    ctx.moveTo(x, y - 5);
+    ctx.lineTo(x - (10 * dir), y + 5); // Brazo izquierdo
+    ctx.stroke();
+
+    // --- ESPADA ---
+    ctx.strokeStyle = '#C0C0C0'; // Color plateado metálico
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(handX, handY);
+    ctx.lineTo(handX + (22 * dir), handY - 18); // Empuñadura / Hoja
+    ctx.stroke();
+
+    // Guardamanos de la espada
+    ctx.strokeStyle = '#FFD700'; // Dorado
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(handX + (3 * dir), handY - 5);
+    ctx.lineTo(handX - (3 * dir), handY + 3);
+    ctx.stroke();
+
+    ctx.restore();
+}
