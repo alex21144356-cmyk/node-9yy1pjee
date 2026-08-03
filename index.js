@@ -20,10 +20,7 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// ================================================================
-// PROGRAMACION ORIENTADA A OBJETOS Y RECURSIVIDAD
-// ================================================================
-
+// POO Y RECURSIVIDAD
 class Arma {
   constructor(id, nombre, tipo, dano) {
     this.id = id;
@@ -42,26 +39,19 @@ class GestorArmeria {
     this.inventario = lista.map(a => new Arma(a.id, a.nombre, a.tipo, a.dano));
   }
 
-  // Algoritmo Recursivo: Calculo del dano acumulado en catalogo
   calcularDanoTotalRecursivo(lista, index = 0) {
-    if (index >= lista.length) {
-      return 0; // Caso base
-    }
+    if (index >= lista.length) return 0;
     return lista[index].dano + this.calcularDanoTotalRecursivo(lista, index + 1);
   }
 }
 
 const armeriaManager = new GestorArmeria();
 
-// ================================================================
-// RUTAS REST / API
-// ================================================================
-
+// RUTAS API
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-// Registro de usuario
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'Faltan datos' });
@@ -73,11 +63,10 @@ app.post('/api/register', async (req, res) => {
     await crearUsuario(username, password);
     res.json({ username });
   } catch (err) {
-    res.status(500).json({ error: 'Error en el servidor al registrar' });
+    res.status(500).json({ error: 'Error en el servidor' });
   }
 });
 
-// Inicio de sesion
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body || {};
   try {
@@ -87,11 +76,10 @@ app.post('/api/login', async (req, res) => {
     }
     res.json({ username: usuario.username });
   } catch (err) {
-    res.status(500).json({ error: 'Error en el servidor al iniciar sesion' });
+    res.status(500).json({ error: 'Error en el servidor' });
   }
 });
 
-// CRUD Catalogo de Armas
 app.get('/api/armas', async (req, res) => {
   try {
     const armasBD = await obtenerArmas();
@@ -109,7 +97,7 @@ app.post('/api/armas', async (req, res) => {
     const id = await crearArma(nombre, tipo, dano);
     res.json({ id, nombre, tipo, dano });
   } catch (err) {
-    res.status(500).json({ error: 'Error al guardar arma' });
+    res.status(500).json({ error: 'Error al crear arma' });
   }
 });
 
@@ -132,21 +120,26 @@ app.delete('/api/armas/:id', async (req, res) => {
   }
 });
 
-// Obtener Puntajes
 app.get('/api/ganadores', async (req, res) => {
   try {
     const ganadores = await obtenerGanadores();
     res.json(ganadores);
   } catch (err) {
-    res.status(500).json({ error: 'Error al obtener puntajes' });
+    res.status(500).json({ error: 'Error al consultar ganadores' });
   }
 });
 
-// ================================================================
-// MULTIJUGADOR SOCKET.IO
-// ================================================================
+// PLATAFORMAS DEL ESCENARIO
+const plataformas = [
+  { x: 100, y: 260, w: 180, h: 15 },
+  { x: 520, y: 260, w: 180, h: 15 },
+  { x: 320, y: 170, w: 160, h: 15 }
+];
+
+// SOCKET.IO
 let estadoJuego = {
-  players: {}
+  players: {},
+  inputs: {}
 };
 
 io.on('connection', (socket) => {
@@ -156,8 +149,11 @@ io.on('connection', (socket) => {
     x: 100 + Math.random() * 600,
     y: 390,
     vy: 0,
+    enSuelo: true,
     color: ['#ff0055', '#00f0ff', '#00ff66', '#ffcc00'][Math.floor(Math.random() * 4)]
   };
+
+  estadoJuego.inputs[socket.id] = { left: false, right: false, up: false };
 
   socket.emit('init', { id: socket.id });
 
@@ -167,35 +163,62 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('input', (inputs) => {
-    const p = estadoJuego.players[socket.id];
-    if (p) {
-      if (inputs.left) p.x -= 8;
-      if (inputs.right) p.x += 8;
-      if (inputs.up && p.y >= 390) p.vy = -12;
-    }
+  socket.on('input', (data) => {
+    estadoJuego.inputs[socket.id] = data;
   });
 
   socket.on('disconnect', () => {
     delete estadoJuego.players[socket.id];
+    delete estadoJuego.inputs[socket.id];
   });
 });
 
-// Bucle del servidor a 30 FPS para ahorrar CPU
+// FISICAS A 30 FPS
 setInterval(() => {
-  Object.values(estadoJuego.players).forEach(p => {
+  Object.keys(estadoJuego.players).forEach(id => {
+    const p = estadoJuego.players[id];
+    const inp = estadoJuego.inputs[id] || {};
+
+    if (inp.left) p.x -= 6;
+    if (inp.right) p.x += 6;
+
+    // Limites de pantalla horizontales
+    if (p.x < 20) p.x = 20;
+    if (p.x > 780) p.x = 780;
+
+    // Salto
+    if (inp.up && p.enSuelo) {
+      p.vy = -13;
+      p.enSuelo = false;
+    }
+
+    // Gravedad
     p.y += p.vy;
-    if (p.y < 390) {
-      p.vy += 0.8; // Gravedad
-    } else {
-      p.y = 390;
+    p.vy += 0.8;
+
+    let pisoActual = 390;
+    p.enSuelo = false;
+
+    // Deteccion de colision con plataformas flotantes
+    plataformas.forEach(plat => {
+      if (p.x >= plat.x && p.x <= plat.x + plat.w) {
+        if (p.y >= plat.y && p.y - p.vy <= plat.y + 10) {
+          pisoActual = plat.y;
+        }
+      }
+    });
+
+    // Colision con el suelo o plataforma
+    if (p.y >= pisoActual) {
+      p.y = pisoActual;
       p.vy = 0;
+      p.enSuelo = true;
     }
   });
+
   io.emit('estadoJuego', estadoJuego);
 }, 1000 / 30);
 
-// Arranque
 initDB();
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
