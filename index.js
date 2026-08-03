@@ -21,7 +21,37 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-// RUTAS API DE GANADORES Y REGISTRO (SIN SESSION)
+// --- RUTAS DE AUTENTICACIÓN (REGISTRO Y LOGIN) ---
+app.post('/api/register', async (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: 'Faltan datos' });
+  try {
+    const existente = await buscarUsuarioPorNombre(username);
+    if (existente) return res.status(409).json({ error: 'El usuario ya existe' });
+    
+    await crearUsuario(username, password);
+    res.json({ username });
+  } catch (err) {
+    console.error("Error al registrar:", err);
+    res.status(500).json({ error: 'Error al registrar' });
+  }
+});
+
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body || {};
+  try {
+    const usuario = await buscarUsuarioPorNombre(username);
+    if (!usuario) return res.status(401).json({ error: 'Credenciales inválidas' });
+    
+    if (usuario.password_hash !== password) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+    res.json({ username });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en inicio de sesión' });
+  }
+});
+
 app.get('/api/ganadores', async (req, res) => {
   try {
     const ganadores = await obtenerGanadores();
@@ -31,11 +61,10 @@ app.get('/api/ganadores', async (req, res) => {
   }
 });
 
-// LÓGICA DE JUGADORES Y ARENA
+// --- LÓGICA DE JUGADORES Y ARENA ---
 let players = {};
 const MAX_PLAYERS = 4;
 
-// POSICIONES DENTRO DEL PISO DENTRO DEL CANVAS (Y = 385)
 const ROLE_CONFIG = {
   1: { x: 150, y: 385, color: '#ff4757', facing: 1 },
   2: { x: 300, y: 385, color: '#2ed573', facing: 1 },
@@ -52,9 +81,8 @@ io.on('connection', (socket) => {
     if (!ocupado) { role = r; break; }
   }
 
-  // SI LA SALA ESTÁ LLENA
   if (role === null) {
-    role = 99; // Rol Espectador (No genera mono fuera del lienzo)
+    role = 99; // Rol Espectador
   }
 
   const cfg = ROLE_CONFIG[role] || { x: -100, y: -100, color: '#00f0ff', facing: 1 };
@@ -96,7 +124,7 @@ io.on('connection', (socket) => {
 setInterval(() => {
   for (let id in players) {
     let p = players[id];
-    if (p.role > MAX_PLAYERS) continue; // Espectadores no se mueven ni estorban
+    if (p.role > MAX_PLAYERS) continue;
 
     if (p.inputs.left) { p.vx = -5; p.facing = -1; }
     else if (p.inputs.right) { p.vx = 5; p.facing = 1; }
@@ -108,7 +136,6 @@ setInterval(() => {
     p.y += p.vy;
     p.vy += 0.6; // Gravedad
 
-    // Límites del mapa (piso y paredes)
     if (p.y >= 385) { p.y = 385; p.vy = 0; }
     if (p.x < 30) p.x = 30;
     if (p.x > 770) p.x = 770;
