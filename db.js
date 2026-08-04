@@ -67,7 +67,7 @@ async function crearUsuario(username, passwordHash) {
 
 async function buscarUsuarioPorNombre(username) {
     const [rows] = await pool.execute(
-        'SELECT id, username, password as password_hash FROM usuarios WHERE username = ?',
+        'SELECT id, username, password FROM usuarios WHERE username = ?',
         [username]
     );
     return rows[0];
@@ -78,7 +78,6 @@ async function guardarGanador(nombre, puntuacion) {
     try {
         const [rows] = await pool.execute('SELECT id, puntuacion, victorias FROM ganadores WHERE nombre = ?', [nombre]);
         if (rows.length > 0) {
-            // Si ya existe, actualizamos su puntuación máxima y sumamos una victoria
             await pool.execute(
                 'UPDATE ganadores SET puntuacion = GREATEST(puntuacion, ?), victorias = victorias + 1 WHERE nombre = ?',
                 [puntuacion, nombre]
@@ -119,7 +118,6 @@ async function eliminarArma(id) {
 }
 
 async function registrarEquipamiento(usuarioId, armaId) {
-    // Opcional si manejas relación usuario-arma en tu base de datos
     return true;
 }
 
