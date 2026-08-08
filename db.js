@@ -67,6 +67,20 @@ async function initDB() {
   // con el error "Duplicate column name" y simplemente lo ignoramos: esto
   // hace que sea seguro correr esta migracion cada vez que arranca el
   // servidor, sin romper nada de lo que ya estaba funcionando.
+  // Migracion segura: si la tabla "usuarios" ya existia de antes sin la
+  // columna "password_hash" (por ejemplo, de una version anterior del
+  // proyecto), se la agregamos ahora. Si ya existe, MySQL avisa con el
+  // error "Duplicate column name" y lo ignoramos: es seguro correr esto
+  // cada vez que arranca el servidor, sin borrar ningun dato existente.
+  try {
+    await pool.query('ALTER TABLE usuarios ADD COLUMN password_hash VARCHAR(100) NOT NULL DEFAULT \'\'');
+    console.log('Columna "password_hash" agregada a la tabla usuarios.');
+  } catch (err) {
+    if (!/duplicate column/i.test(err.message)) {
+      console.error('Error al migrar la tabla usuarios:', err.message);
+    }
+  }
+
   try {
     await pool.query('ALTER TABLE ganadores ADD COLUMN victorias INT NOT NULL DEFAULT 1');
     console.log('Columna "victorias" agregada a la tabla ganadores.');
