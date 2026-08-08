@@ -72,6 +72,20 @@ async function initDB() {
   // proyecto), se la agregamos ahora. Si ya existe, MySQL avisa con el
   // error "Duplicate column name" y lo ignoramos: es seguro correr esto
   // cada vez que arranca el servidor, sin borrar ningun dato existente.
+  // Migracion segura: si la tabla "usuarios" tiene una columna vieja
+  // llamada "password" (de una version anterior, antes de usar
+  // password_hash), la eliminamos porque ya no se usa y exige un valor
+  // que el codigo actual nunca envia. Si no existe, MySQL avisa con un
+  // error de "columna desconocida" y lo ignoramos sin problema.
+  try {
+    await pool.query('ALTER TABLE usuarios DROP COLUMN password');
+    console.log('Columna vieja "password" eliminada de la tabla usuarios.');
+  } catch (err) {
+    if (!/unknown column|check that column/i.test(err.message)) {
+      console.error('Error al limpiar la tabla usuarios:', err.message);
+    }
+  }
+
   try {
     await pool.query('ALTER TABLE usuarios ADD COLUMN password_hash VARCHAR(100) NOT NULL DEFAULT \'\'');
     console.log('Columna "password_hash" agregada a la tabla usuarios.');
